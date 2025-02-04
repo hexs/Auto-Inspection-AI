@@ -1,12 +1,22 @@
 import os
-import cv2
-from hexss import json_load, json_update, is_port_available, close_port
-from hexss.image import get_image_from_url
-from flask import Flask, render_template, request
 import logging
-import requests
-import numpy as np
 import time
+from hexss import check_packages
+
+check_packages(
+    'numpy', 'opencv-python', 'Flask', 'requests', 'pygame-gui',
+    'tensorflow', 'keras', 'pyzbar',
+    install=True
+)
+
+from hexss import json_load, json_update, close_port, get_hostname
+from hexss.network import get_all_ipv4
+from hexss.path import get_script_directory, move_up
+from hexss.image import get_image_from_url
+import numpy as np
+import cv2
+from flask import Flask, render_template, request, jsonify
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -32,14 +42,28 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/data', methods=['GET'])
+def data():
+    data = app.config['data']
+    print(data)
+    return jsonify(data), 200
+
+
 def run_server(data):
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)
 
     app.config['data'] = data
-    ipv4 = "0.0.0.0"
+
+    ipv4 = data['config']['ipv4']
     port = data['config']['port']
-    logger.info(f" * Running on http://{ipv4}:{port}")
+
+    if ipv4 == '0.0.0.0':
+        for ipv4_ in {'127.0.0.1', *get_all_ipv4(), get_hostname()}:
+            logging.info(f"Running on http://{ipv4_}:{port}")
+    else:
+        logging.info(f"Running on http://{ipv4}:{port}")
+
     app.run(host=ipv4, port=port, debug=False, use_reloader=False)
 
 
@@ -129,34 +153,35 @@ if __name__ == '__main__':
         'device': 'RP',
         'resolution_note': '1920x1080, 800x480',
         'resolution': '800x480',
-        'model_name': 'QC7-7990',
+        'model_name': '-',
+        'model_names': ["QC7-7990-000", "POWER-SUPPLY-FIXING-UNIT"],
         'fullscreen': True,
-        'url_image': 'http://127.0.0.1:2000/image?source=video_capture&id=0',
-        'data_path': r'C:\PythonProjects\PCB-Auto-Inspection\data',
-        'xfunction_note': 'robot',
-        'xfunction': 'robot',
-        'robot_url': 'http://127.0.0.1:2002',
+        'image_url': 'http://127.0.0.1:2002/image?source=video_capture&id=0',
     }, True)
 
-    close_port(config['ipv4'], config['port'])
+    close_port(config['ipv4'], config['port'], verbose=False)
+
+    script_directory = get_script_directory()
+    projects_directory = move_up(script_directory)
 
     m = Multithread()
     data = {
         'config': config,
+        'script_directory': script_directory,
+        'projects_directory': projects_directory,
+        'model_name': config['model_name'],
+        'model_names': config['model_names'],
         'events': [],
         'play': True,
-        'robot capture': '',  # *'', 'capture', 'capture ok', 'error'
-        'image': None,
     }
 
     m.add_func(auto_inspection.main, args=(data,))
     m.add_func(run_server, args=(data,), join=False)
-    m.add_func(robot_capture, args=(data,))
 
     m.start()
     try:
         while data['play']:
-            print(m.start())
+            # print(m.get_status())
             time.sleep(1)
     except KeyboardInterrupt:
         print("\nShutting down...")
