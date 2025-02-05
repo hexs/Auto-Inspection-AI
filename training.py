@@ -6,46 +6,13 @@ import json
 import pathlib
 import matplotlib.pyplot as plt
 import keras
+from hexss.path import get_script_directory, move_up
 from keras import layers, models
 from keras.models import Sequential
 from datetime import datetime
 from hexss import json_load, json_update
 from hexss.constants import *
-
-
-def controller(img, brightness=255, contrast=127):
-    """Adjust brightness and contrast of an image."""
-    brightness = int((brightness - 0) * (255 - (-255)) / (510 - 0) + (-255))
-    contrast = int((contrast - 0) * (127 - (-127)) / (254 - 0) + (-127))
-
-    if brightness != 0:
-        shadow = brightness if brightness > 0 else 0
-        max_val = 255 if brightness > 0 else 255 + brightness
-        alpha = (max_val - shadow) / 255
-        gamma = shadow
-        img = cv2.addWeighted(img, alpha, img, 0, gamma)
-
-    if contrast != 0:
-        alpha = float(131 * (contrast + 127)) / (127 * (131 - contrast))
-        gamma = 127 * (1 - alpha)
-        img = cv2.addWeighted(img, alpha, img, 0, gamma)
-
-    return img
-
-
-def crop_img(image, xywh, shift=(0, 0)):
-    """Crop and resize image based on xywh coordinates."""
-    wh_ = np.array(image.shape[1::-1])
-    xy = np.array(xywh[:2])
-    wh = np.array(xywh[2:])
-    xy1_ = ((xy - wh / 2) * wh_).astype(int)
-    xy2_ = ((xy + wh / 2) * wh_).astype(int)
-
-    x1_, y1_ = xy1_ + shift
-    x2_, y2_ = xy2_ + shift
-
-    image_crop = image[y1_:y2_, x1_:x2_]
-    return cv2.resize(image_crop, (180, 180))
+from hexss.image import controller, crop_img
 
 
 def save_img(model_name, frame_dict):
@@ -79,7 +46,7 @@ def save_img(model_name, frame_dict):
             xywh = frame_dict[pos_name]['xywh']
 
             # Save original cropped image
-            img_crop = crop_img(img, xywh)
+            img_crop = crop_img(img, xywh, resize=(180, 180))
             log_path = os.path.join(IMG_FRAME_LOG_PATH, model_name)
             os.makedirs(log_path, exist_ok=True)
             cv2.imwrite(f"{log_path}/{status} {pos_name} {file_name}.png", img_crop)
@@ -92,10 +59,10 @@ def save_img(model_name, frame_dict):
             # shift = [-4, 0, 4]
             for shift_y in shift:
                 for shift_x in shift:
-                    img_crop = crop_img(img, xywh, shift=(shift_x, shift_y))
+                    img_crop = crop_img(img, xywh, shift=(shift_x, shift_y), resize=(180, 180))
 
-                    for brightness in [230, 242, 255, 267, 280]:
-                        for contrast in [114, 120, 127, 133, 140]:
+                    for brightness in [-24, -12, 0, 12, 24]:
+                        for contrast in [-12, -6, 0, 6, 12]:
                             img_crop_BC = controller(img_crop, brightness, contrast)
 
                             output_filename = f"{file_name} {pos_name} {status} {shift_y} {shift_x} {brightness} {contrast}.png"
@@ -182,13 +149,18 @@ def create_model(model_name):
     shutil.rmtree(fr"{IMG_FRAME_PATH}/{model_name}")
 
 
-def training(PCB_name):
+def training(inspection_name):
     global IMG_FULL_PATH, IMG_FRAME_PATH, IMG_FRAME_LOG_PATH, MODEL_PATH
+
+    script_dir = get_script_directory()
+    projects_dir = move_up(script_dir)
+    inspection_name_dir = os.path.join(projects_dir, f"auto_inspection_data__{inspection_name}")
+
     # Paths
-    IMG_FULL_PATH = f'data/{PCB_name}/img_full'
-    IMG_FRAME_PATH = f'data/{PCB_name}/img_frame'
-    IMG_FRAME_LOG_PATH = f'data/{PCB_name}/img_frame_log'
-    MODEL_PATH = f'data/{PCB_name}/model'
+    IMG_FULL_PATH = f'{inspection_name_dir}/img_full'
+    IMG_FRAME_PATH = f'{inspection_name_dir}/img_frame'
+    IMG_FRAME_LOG_PATH = f'{inspection_name_dir}/img_frame_log'
+    MODEL_PATH = f'{inspection_name_dir}/model'
 
     # Create necessary directories
     for path in [IMG_FULL_PATH, IMG_FRAME_PATH, IMG_FRAME_LOG_PATH, MODEL_PATH]:
@@ -196,16 +168,16 @@ def training(PCB_name):
 
     model_list = [file.split('.')[0] for file in os.listdir(MODEL_PATH) if file.endswith('.h5')]
     print()
-    print(f'{CYAN}===========  {PCB_name}  ==========={ENDC}')
+    print(f'{CYAN}===========  {inspection_name}  ==========={END}')
     print(f'model.h5 (ที่มี) = {len(model_list)} {model_list}')
 
-    json_data = json_load(os.path.join('data', PCB_name, 'frames pos.json'))
+    json_data = json_load(os.path.join(inspection_name_dir, 'frames pos.json'))
     frame_dict = json_data['frames']
     model_dict = json_data['models']
 
     for model_name, model in model_dict.items():
         # อ่าน wait_training.json
-        wait_training_dict = json_load(f'data/{PCB_name}/wait_training.json', {})
+        wait_training_dict = json_load(f'{inspection_name_dir}/wait_training.json', {})
 
         if model_name not in wait_training_dict.keys() or wait_training_dict[model_name] == False:
             print(f'continue {model_name}')
@@ -214,12 +186,13 @@ def training(PCB_name):
         print(f'{model_name} {model}')
         t1 = datetime.now()
         print('-------- >>> crop_img <<< ---------')
+
         save_img(model_name, frame_dict)
         t2 = datetime.now()
         print(f'{t2 - t1} เวลาที่ใช้ในการเปลียน img_full เป็น shift_img ')
         print('------- >>> training... <<< ---------')
         create_model(model_name)
-        json_update(f'data/{PCB_name}/wait_training.json', {model_name: False})
+        json_update(f'{inspection_name_dir}/wait_training.json', {model_name: False})
         t3 = datetime.now()
         print(f'{t2 - t1} เวลาที่ใช้ในการเปลียน img_full เป็น shift_img ')
         print(f'{t3 - t2} เวลาที่ใช้ในการ training ')
@@ -234,6 +207,6 @@ if __name__ == '__main__':
     img_width = 180
     epochs = 5
 
-    # training(PCB_name='D87 QM7-4643')
-    # training(PCB_name='D07 QM7-3238')
-    training(PCB_name='QC7-7990')
+    config = json_load('config.json')
+    for inspection_name in config['model_names']:
+        training(inspection_name)

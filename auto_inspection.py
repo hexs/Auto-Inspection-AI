@@ -1,9 +1,11 @@
+import json
 import os
 from datetime import datetime
 from pprint import pprint
 import numpy as np
 import cv2
 import pygame as pg
+from hexss.image.func import pygame_surface_to_numpy
 from pygame import Rect, Surface, mouse, MOUSEBUTTONDOWN
 import pygame_gui
 from pygame_gui import UIManager, UI_FILE_DIALOG_PATH_PICKED, UI_BUTTON_PRESSED, UI_DROP_DOWN_MENU_CHANGED, \
@@ -20,6 +22,7 @@ from theme import theme
 from TextBoxSurface import TextBoxSurface, gradient_surface
 from pygame_function import putText, UITextBox
 from os.path import join
+from summary_graphs import summary
 
 
 class RightClick:
@@ -92,7 +95,8 @@ class AutoInspection:
         self.img_surface = pg.image.frombuffer(np_img.tobytes(), np_img.shape[1::-1], "BGR")
         self.update_scaled_img_surface()
 
-    def get_surface_form_url(self, url):
+    def get_surface_form_url(self):
+        url = "http://127.0.0.1:2002/image?source=video_capture&id=0"
         self.np_img = get_image(url, 'numpy')
         self.get_surface_form_np(self.np_img)
 
@@ -149,7 +153,8 @@ class AutoInspection:
     def model_name_dir(self):
         return join(self.data['projects_directory'], f"auto_inspection_data__{self.data['model_name']}")
 
-    def __init__(self, data):
+    def __init__(self, data, ui=True):
+        self.save_result = 0
         self.is_show_rects = True
         self.data = data
         self.config = data['config']
@@ -162,7 +167,7 @@ class AutoInspection:
         self.data['model_name'] = self.config['model_name']
 
         self.np_img = self.IMG.copy()
-
+        # if ui:
         pg.init()
         pg.display.set_caption('Auto Inspection')
         self.clock = pg.time.Clock()
@@ -174,7 +179,6 @@ class AutoInspection:
         self.change_model()
 
         self.file_name = None
-        self.wait_predict = False
         self.debug_class_name = {}  # key is pos_name, vel is class_name
 
         self.pass_n = 0
@@ -245,16 +249,16 @@ class AutoInspection:
                     print(f'{YELLOW}Error load model.h5.\n'
                           f'file error <data>/{self.data["model_name"]}/model/{name}.h5{END}')
                     print(PINK, e, END, sep='')
-                # try:
-                model.update(json_load(join(self.model_name_dir(), f'model/{name}.json')))
-                pprint(model)
-                if model['model_class_names'] != model['class_names']:
-                    print(f'{YELLOW}class_names       = {model["class_names"]}')
-                    print(f'model_class_names = {model["model_class_names"]}{END}')
-                # except Exception as e:
-                #     print(f'{YELLOW}function "load_model" error.\n'
-                #           f'file error <data>/{self.data["model_name"]}/model/{name}.json{END}')
-                #     print(PINK, e, END, sep='')
+                try:
+                    model.update(json_load(join(self.model_name_dir(), f'model/{name}.json')))
+                    pprint(model)
+                    if model['model_class_names'] != model['class_names']:
+                        print(f'{YELLOW}class_names       = {model["class_names"]}')
+                        print(f'model_class_names = {model["model_class_names"]}{END}')
+                except Exception as e:
+                    print(f'{YELLOW}function "load_model" error.\n'
+                          f'file error <data>/{self.data["model_name"]}/model/{name}.json{END}')
+                    print(PINK, e, END, sep='')
 
             config = json_load(join(self.model_name_dir(), 'model_config.json'))
             if config.get(self.resolution):
@@ -306,6 +310,7 @@ class AutoInspection:
 
                 frame['highest_score_name'] = highest_score_name
                 frame['highest_score_percent'] = highest_score_percent
+                frame['class_names_percent'] = dict(zip(model_class_names, percent_score_list))
 
                 if highest_score_name == 'OK':
                     frame['color_rect'] = (0, 255, 0)
@@ -322,6 +327,7 @@ class AutoInspection:
             self.fail_n += 1
             self.res_textbox.update_text('res', text='NG', color=(255, 0, 0))
         self.update_status()
+        self.save_result = 1
 
     def create_model_data_dropdown(self, start_option='-'):
         is_full_hd = self.resolution == '1920x1080'
@@ -335,21 +341,26 @@ class AutoInspection:
     def panel0_setup(self):
         is_full_hd = self.resolution == '1920x1080'
         # top left
-        rect = Rect(5, 5, 30, 30) if is_full_hd else Rect(10, 0, 60, 30)
+        rect = Rect(5, 5, 52, 30) if is_full_hd else Rect(10, 0, 52, 30)
         self.model_label = UILabel(
             rect, f'Model:', self.manager,
             object_id=ObjectID(class_id='@model_label', object_id='#model_label')
         )
         self.create_model_data_dropdown()
         self.open_image_button = UIButton(
-            Rect(10, 5, 60, 30) if is_full_hd else Rect(10, 0, 60, 30),
+            Rect(10, 5, 70, 30) if is_full_hd else Rect(10, 0, 60, 30),
             'Open...', self.manager,
             anchors={'left_target': self.model_data_dropdown}
         )
         self.save_image_button = UIButton(
-            Rect(10, 5, 60, 30) if is_full_hd else Rect(10, 0, 60, 30),
+            Rect(10, 5, 70, 30) if is_full_hd else Rect(10, 0, 60, 30),
             'Save...', self.manager,
             anchors={'left_target': self.open_image_button}
+        )
+        self.summary_button = UIButton(
+            Rect(10, 5, 70, 30) if is_full_hd else Rect(10, 0, 60, 30),
+            'Summary', self.manager,
+            anchors={'left_target': self.save_image_button}
         )
         self.open_image_button.disable()
         self.save_image_button.disable()
@@ -431,6 +442,9 @@ class AutoInspection:
                     )
                 if event.ui_element == self.save_image_button:
                     self.set_name_for_debug()
+                if event.ui_element == self.summary_button:
+                    summary(self.model_name_dir())
+
 
             if event.type == pygame_gui.UI_BUTTON_START_PRESS:
                 if event.ui_object_id == 'drop_down_menu.#selected_option':
@@ -701,7 +715,7 @@ class AutoInspection:
     def panel2_update(self, events):
 
         def capture_button():
-            self.get_surface_form_url(self.config['image_url'])
+            self.get_surface_form_url()
             self.reset_frame()
             self.set_name_for_debug()
 
@@ -726,9 +740,7 @@ class AutoInspection:
                 self.predict()
             if event == 'Capture&Predict':
                 capture_button()
-                self.predict_button.disable()
-                # self.capture_predict_button.disable()
-                self.wait_predict = True
+                self.predict()
 
         for event in events:
             if event.type == UI_BUTTON_PRESSED:
@@ -753,9 +765,7 @@ class AutoInspection:
                     self.predict()
                 if event.ui_element == self.capture_predict_button:
                     capture_button()
-                    self.predict_button.disable()
-                    self.capture_predict_button.disable()
-                    self.wait_predict = True
+                    self.predict()
             if event.type == UI_FILE_DIALOG_PATH_PICKED:
                 # from Load Image
                 if event.ui_object_id == '#open_img_other':
@@ -781,7 +791,7 @@ class AutoInspection:
             #         self.set_name_for_debug()
 
         if self.auto_cap_button.text == 'Stop':
-            self.get_surface_form_url(self.config['image_url'])
+            self.get_surface_form_url()
 
     def setup_ui(self, ):
         self.panel0_setup()
@@ -818,6 +828,24 @@ class AutoInspection:
             self.manager.draw_ui(self.display)
 
             pg.display.update()
+
+            if self.save_result:
+                self.save_result += 1
+                if self.save_result == 4:
+                    self.save_result = 0
+
+                    result_path = join(self.model_name_dir(), 'img_result')
+                    os.makedirs(result_path, exist_ok=True)
+                    cv2.imwrite(join(result_path, f'{self.file_name}.png'), self.np_img)
+                    cv2.imwrite(join(result_path, f'{self.file_name}.jpg'), pygame_surface_to_numpy(self.display))
+
+                    result = {}
+                    for name, frame in self.frame_dict.items() if self.frame_dict else ():
+                        result[name] = frame['class_names_percent']
+                    print(result)
+
+                    with open(join(result_path, f'result.txt'), 'a') as f:
+                        f.write(f'{self.file_name}--{json.dumps(result)}\n')
 
 
 def main(data):
