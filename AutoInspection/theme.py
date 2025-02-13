@@ -101,7 +101,7 @@ theme.update({
         },
         "images": {
             "normal_image": {
-                "path": "ui/DX.png",
+                "path": "ui/icon.png",
                 "sub_surface_rect": "0,0,30,30"
             },
 

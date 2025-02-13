@@ -1,12 +1,10 @@
 import os
 import cv2
-import numpy as np
 import shutil
 import json
 import pathlib
 import matplotlib.pyplot as plt
 import keras
-from hexss.path import get_script_directory, move_up
 from keras import layers, models
 from keras.models import Sequential
 from datetime import datetime
@@ -69,7 +67,7 @@ def save_img(model_name, frame_dict):
                             cv2.imwrite(os.path.join(frame_path, output_filename), img_crop_BC)
 
 
-def create_model(model_name):
+def create_model(model_name, img_height, img_width, batch_size, epochs):
     """Create and train a model."""
     data_dir = pathlib.Path(rf'{IMG_FRAME_PATH}/{model_name}')
     image_count = len(list(data_dir.glob('*/*.png')))
@@ -149,12 +147,16 @@ def create_model(model_name):
     shutil.rmtree(fr"{IMG_FRAME_PATH}/{model_name}")
 
 
-def training(inspection_name):
+def training_(inspection_name, config):
     global IMG_FULL_PATH, IMG_FRAME_PATH, IMG_FRAME_LOG_PATH, MODEL_PATH
 
-    script_dir = get_script_directory()
-    projects_dir = move_up(script_dir)
-    inspection_name_dir = os.path.join(projects_dir, f"auto_inspection_data__{inspection_name}")
+    img_height = config['img_height']
+    img_width = config['img_width']
+    batch_size = config['batch_size']
+    epochs = config['epochs']
+    projects_directory = config['projects_directory']
+
+    inspection_name_dir = os.path.join(projects_directory, f"auto_inspection_data__{inspection_name}")
 
     # Paths
     IMG_FULL_PATH = f'{inspection_name_dir}/img_full'
@@ -179,7 +181,7 @@ def training(inspection_name):
         # อ่าน wait_training.json
         wait_training_dict = json_load(f'{inspection_name_dir}/wait_training.json', {})
 
-        if model_name not in wait_training_dict.keys() or wait_training_dict[model_name] == False:
+        if not wait_training_dict.get(model_name, True):
             print(f'continue {model_name}')
             continue
         print()
@@ -191,7 +193,7 @@ def training(inspection_name):
         t2 = datetime.now()
         print(f'{t2 - t1} เวลาที่ใช้ในการเปลียน img_full เป็น shift_img ')
         print('------- >>> training... <<< ---------')
-        create_model(model_name)
+        create_model(model_name, img_height, img_width, batch_size, epochs)
         json_update(f'{inspection_name_dir}/wait_training.json', {model_name: False})
         t3 = datetime.now()
         print(f'{t2 - t1} เวลาที่ใช้ในการเปลียน img_full เป็น shift_img ')
@@ -200,13 +202,22 @@ def training(inspection_name):
         print()
 
 
-if __name__ == '__main__':
-    # Constants
-    batch_size = 32
-    img_height = 180
-    img_width = 180
-    epochs = 5
+def training(*args, config):
+    for inspection_name in args:
+        training_(inspection_name, config)
 
-    config = json_load('config.json')
-    for inspection_name in config['model_names']:
-        training(inspection_name)
+
+if __name__ == '__main__':
+    training(
+        "QC7-7990-000",
+        "QD1-1988-000",
+        "POWER-SUPPLY-FIXING-UNIT",
+        "POWER-SUPPLY-FIXING-UNIT2",
+        config={
+            'projects_directory': 'C:\\PythonProjects\\',
+            'batch_size': 32,
+            'img_height': 180,
+            'img_width': 180,
+            'epochs': 5,
+        }
+    )

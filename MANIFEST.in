@@ -1,0 +1,3 @@
+include AutoInspection/templates/*.html
+include AutoInspection/static/*.js
+include AutoInspection/static/*.css
