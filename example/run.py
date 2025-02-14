@@ -4,7 +4,7 @@ from hexss import check_packages
 check_packages(
     'numpy', 'opencv-python', 'Flask', 'requests', 'pygame-gui',
     'tensorflow', 'keras', 'pyzbar',
-    install=True
+    auto_install=True, verbose=False
 )
 
 from hexss import json_load, close_port

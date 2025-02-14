@@ -5,7 +5,8 @@ from hexss import check_packages
 
 check_packages(
     'numpy', 'opencv-python', 'Flask', 'requests', 'pygame-gui',
-    'tensorflow', 'keras', 'pyzbar'
+    'tensorflow', 'keras', 'pyzbar',
+    auto_install=True, verbose=False
 )
 
 from hexss import json_load, json_update, close_port, get_hostname
@@ -59,4 +60,3 @@ def run_server(data):
         logging.info(f"Running on http://{ipv4}:{port}")
 
     app.run(host=ipv4, port=port, debug=False, use_reloader=False)
-
