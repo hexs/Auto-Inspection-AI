@@ -5,8 +5,7 @@ from hexss import check_packages
 
 check_packages(
     'numpy', 'opencv-python', 'Flask', 'requests', 'pygame-gui',
-    'tensorflow', 'keras', 'pyzbar',
-    install=True
+    'tensorflow', 'keras', 'pyzbar'
 )
 
 from hexss import json_load, json_update, close_port, get_hostname
