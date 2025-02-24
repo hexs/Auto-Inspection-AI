@@ -1,4 +1,5 @@
 import os
+import random
 import cv2
 import shutil
 import json
@@ -53,7 +54,7 @@ def save_img(model_name, frame_dict):
             frame_path = os.path.join(IMG_FRAME_PATH, model_name, status)
             os.makedirs(frame_path, exist_ok=True)
 
-            shift = [-4, -2, 0, 1, 4]
+            shift = [-4, -2, 0, 2, 4]
             # shift = [-4, 0, 4]
             for shift_y in shift:
                 for shift_x in shift:
@@ -61,10 +62,11 @@ def save_img(model_name, frame_dict):
 
                     for brightness in [-24, -12, 0, 12, 24]:
                         for contrast in [-12, -6, 0, 6, 12]:
-                            img_crop_BC = controller(img_crop, brightness, contrast)
+                            if (brightness == 0 and contrast == 0) or random.choice([0, 1]):
+                                img_crop_BC = controller(img_crop, brightness, contrast)
 
-                            output_filename = f"{file_name} {pos_name} {status} {shift_y} {shift_x} {brightness} {contrast}.png"
-                            cv2.imwrite(os.path.join(frame_path, output_filename), img_crop_BC)
+                                output_filename = f"{file_name} {pos_name} {status} {shift_y} {shift_x} {brightness} {contrast}.png"
+                                cv2.imwrite(os.path.join(frame_path, output_filename), img_crop_BC)
 
 
 def create_model(model_name, img_height, img_width, batch_size, epochs):
@@ -107,7 +109,7 @@ def create_model(model_name, img_height, img_width, batch_size, epochs):
     num_classes = len(class_names)
     model = Sequential([
         layers.Rescaling(1. / 255, input_shape=(img_height, img_width, 3)),
-        layers.Conv2D(16, (3, 3), padding='same', activation='relu'),
+        layers.Conv2D(16, 3, padding='same', activation='relu'),
         layers.MaxPooling2D(),
         layers.Conv2D(32, 3, padding='same', activation='relu'),
         layers.MaxPooling2D(),
