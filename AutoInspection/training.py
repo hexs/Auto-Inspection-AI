@@ -1,36 +1,48 @@
 import os
 import random
-import cv2
 import shutil
 import json
 import pathlib
-import matplotlib.pyplot as plt
-import keras
-from keras import layers, models
-from keras.models import Sequential
 from datetime import datetime
 from hexss import json_load, json_update
 from hexss.constants import *
 from hexss.image import controller, crop_img
 
+import cv2
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers, models
+from tensorflow.keras.models import Sequential
 
-def save_img(model_name, frame_dict):
-    """Save cropped and processed images."""
-    # Remove existing folders
-    for path in [IMG_FRAME_LOG_PATH, IMG_FRAME_PATH]:
-        folder = os.path.join(path, model_name)
-        if os.path.exists(folder):
+
+def save_img(model_name: str, frame_dict: dict, paths: dict, resize: tuple = (180, 180)) -> None:
+    img_full_path = pathlib.Path(paths['img_full'])
+    img_frame_path = pathlib.Path(paths['img_frame'])
+    img_frame_log_path = pathlib.Path(paths['img_frame_log'])
+
+    # Remove existing folders for this model, if any
+    for base_path in [img_frame_log_path, img_frame_path]:
+        folder = base_path / model_name
+        if folder.exists():
             shutil.rmtree(folder)
 
     # Get list of image files
-    img_files = [f.split('.')[0] for f in os.listdir(IMG_FULL_PATH) if f.endswith(('.png', '.json'))]
-    img_files = sorted(set(img_files), reverse=True)
+    img_files = sorted({f.stem for f in img_full_path.glob("*") if f.suffix in ['.png', '.json']}, reverse=True)
 
     for i, file_name in enumerate(img_files):
         print(f'{i + 1}/{len(img_files)} {file_name}')
-
-        frames = json_load(f"{IMG_FULL_PATH}/{file_name}.json")
-        img = cv2.imread(f"{IMG_FULL_PATH}/{file_name}.png")
+        json_file = img_full_path / f"{file_name}.json"
+        img_file = img_full_path / f"{file_name}.png"
+        try:
+            frames = json_load(str(json_file))
+            img = cv2.imread(str(img_file))
+            if img is None:
+                print(f"{YELLOW}Warning: Unable to read image {img_file}{END}")
+                continue
+        except Exception as e:
+            print(f"{RED}Error loading {file_name}: {e}{END}")
+            continue
 
         for pos_name, status in frames.items():
             if pos_name not in frame_dict:
@@ -45,33 +57,32 @@ def save_img(model_name, frame_dict):
             xywh = frame_dict[pos_name]['xywh']
 
             # Save original cropped image
-            img_crop = crop_img(img, xywh, resize=(180, 180))
-            log_path = os.path.join(IMG_FRAME_LOG_PATH, model_name)
-            os.makedirs(log_path, exist_ok=True)
-            cv2.imwrite(f"{log_path}/{status} {pos_name} {file_name}.png", img_crop)
+            img_crop = crop_img(img, xywh, resize=resize)
+            log_dir = img_frame_log_path / model_name
+            log_dir.mkdir(parents=True, exist_ok=True)
+            cv2.imwrite(str(log_dir / f"{status}_{pos_name}_{file_name}.png"), img_crop)
 
             # Process and save variations
-            frame_path = os.path.join(IMG_FRAME_PATH, model_name, status)
-            os.makedirs(frame_path, exist_ok=True)
+            variant_dir = img_frame_path / model_name / status
+            variant_dir.mkdir(parents=True, exist_ok=True)
 
-            shift = [-4, -2, 0, 2, 4]
-            # shift = [-4, 0, 4]
-            for shift_y in shift:
-                for shift_x in shift:
-                    img_crop = crop_img(img, xywh, shift=(shift_x, shift_y), resize=(180, 180))
-
+            shift_values = [-4, -2, 0, 2, 4]
+            for shift_y in shift_values:
+                for shift_x in shift_values:
+                    shifted_crop = crop_img(img, xywh, shift=(shift_x, shift_y), resize=resize)
                     for brightness in [-24, -12, 0, 12, 24]:
                         for contrast in [-12, -6, 0, 6, 12]:
-                            if (brightness == 0 and contrast == 0) or random.choice([0, 1]):
-                                img_crop_BC = controller(img_crop, brightness, contrast)
+                            # Always include the no-adjustment case or add a random choice
+                            if (brightness == 0 and contrast == 0) or random.choice([True, False]):
+                                img_variant = controller(shifted_crop, brightness, contrast)
+                                output_filename = f"{file_name}_{pos_name}_{status}_{shift_y}_{shift_x}_{brightness}_{contrast}.png"
+                                cv2.imwrite(str(variant_dir / output_filename), img_variant)
 
-                                output_filename = f"{file_name} {pos_name} {status} {shift_y} {shift_x} {brightness} {contrast}.png"
-                                cv2.imwrite(os.path.join(frame_path, output_filename), img_crop_BC)
 
-
-def create_model(model_name, img_height, img_width, batch_size, epochs):
-    """Create and train a model."""
-    data_dir = pathlib.Path(rf'{IMG_FRAME_PATH}/{model_name}')
+def create_model(model_name: str, img_height: int, img_width: int, batch_size: int, epochs: int, paths: dict) -> None:
+    # Use pathlib for cross-platform path handling
+    data_dir = pathlib.Path(paths['img_frame']) / model_name
+    # Count images in all subdirectories
     image_count = len(list(data_dir.glob('*/*.png')))
     print(f'image_count = {image_count}')
 
@@ -87,25 +98,29 @@ def create_model(model_name, img_height, img_width, batch_size, epochs):
     class_names = train_ds.class_names
     print('class_names =', class_names)
 
-    with open(fr'{MODEL_PATH}/{model_name}.json', 'w') as file:
-        file.write(json.dumps({"model_class_names": class_names}, indent=4))
+    # Save class names info to JSON
+    model_path = pathlib.Path(paths['model'])
+    model_path.mkdir(parents=True, exist_ok=True)
+    with open(model_path / f"{model_name}.json", 'w') as file:
+        json.dump({"model_class_names": class_names}, file, indent=4)
 
-    # Visualize the data
+    # Visualize a sample of the training data
     plt.figure(figsize=(20, 10))
     for images, labels in train_ds.take(1):
-        for i in range(32):
+        for i in range(min(32, len(images))):
             ax = plt.subplot(4, 8, i + 1)
             plt.imshow(images[i].numpy().astype("uint8"))
             plt.title(class_names[labels[i]])
             plt.axis("off")
-    plt.savefig(f'{MODEL_PATH}/{model_name}.png')
+    plt.savefig(str(model_path / f"{model_name}.png"))
+    plt.close()
 
-    # Configure the dataset for performance
-    AUTOTUNE = -1
+    # Use TensorFlow's AUTOTUNE for data prefetching
+    AUTOTUNE = tf.data.AUTOTUNE
     train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
     val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
-    # Create the model
+    # Build the model
     num_classes = len(class_names)
     model = Sequential([
         layers.Rescaling(1. / 255, input_shape=(img_height, img_width, 3)),
@@ -120,92 +135,92 @@ def create_model(model_name, img_height, img_width, batch_size, epochs):
         layers.Dense(128, activation='relu'),
         layers.Dense(num_classes)
     ])
-
     model.compile(optimizer='adam',
                   loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                   metrics=['accuracy'])
     model.summary()
+
     history = model.fit(train_ds, validation_data=val_ds, epochs=epochs)
 
     # Visualize training results
-    acc = history.history['accuracy']
-    val_acc = history.history['val_accuracy']
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-
+    acc = history.history.get('accuracy', [])
+    val_acc = history.history.get('val_accuracy', [])
+    loss = history.history.get('loss', [])
+    val_loss = history.history.get('val_loss', [])
     epochs_range = range(epochs)
+
     plt.figure(figsize=(10, 8))
-    plt.plot(epochs_range, val_acc, label='Validation Accuracy', c=(0, 0.8, 0.5))
-    plt.plot(epochs_range, acc, label='Training Accuracy', ls='--', c=(0, 0, 1))
-    plt.plot(epochs_range, val_loss, label='Validation Loss', c=(1, 0.5, 0.1))
-    plt.plot(epochs_range, loss, label='Training Loss', c='r', ls='--')
-    plt.legend(loc='right')
+    plt.plot(epochs_range, acc, label='Training Accuracy', ls='--', color='blue')
+    plt.plot(epochs_range, val_acc, label='Validation Accuracy', color=(0, 0.8, 0.5))
+    plt.plot(epochs_range, loss, label='Training Loss', ls='--', color='red')
+    plt.plot(epochs_range, val_loss, label='Validation Loss', color=(1, 0.5, 0.1))
+    plt.legend(loc='best')
     plt.title(model_name)
-    plt.savefig(fr'{MODEL_PATH}/{model_name}_graf.png')
+    plt.savefig(str(model_path / f"{model_name}_graf.png"))
+    plt.close()
 
-    model.save(os.path.join(MODEL_PATH, f'{model_name}.h5'))
+    # Save the trained model
+    model.save(str(model_path / f"{model_name}.h5"))
 
-    # Clean up
-    shutil.rmtree(fr"{IMG_FRAME_PATH}/{model_name}")
+    # Clean up the image frame folder after training
+    shutil.rmtree(str(paths['img_frame'] / model_name))
 
 
-def training_(inspection_name, config):
-    global IMG_FULL_PATH, IMG_FRAME_PATH, IMG_FRAME_LOG_PATH, MODEL_PATH
+def training_(inspection_name: str, config: dict) -> None:
+    projects_directory = pathlib.Path(config['projects_directory'])
+    # Create a base directory for the inspection
+    inspection_dir = projects_directory / f"auto_inspection_data__{inspection_name}"
 
-    img_height = config['img_height']
-    img_width = config['img_width']
-    batch_size = config['batch_size']
-    epochs = config['epochs']
-    projects_directory = config['projects_directory']
+    # Define all relevant subdirectories in a dictionary
+    paths = {
+        'img_full': inspection_dir / "img_full",
+        'img_frame': inspection_dir / "img_frame",
+        'img_frame_log': inspection_dir / "img_frame_log",
+        'model': inspection_dir / "model"
+    }
+    # Ensure directories exist
+    for path in paths.values():
+        path.mkdir(parents=True, exist_ok=True)
 
-    inspection_name_dir = os.path.join(projects_directory, f"auto_inspection_data__{inspection_name}")
-
-    # Paths
-    IMG_FULL_PATH = f'{inspection_name_dir}/img_full'
-    IMG_FRAME_PATH = f'{inspection_name_dir}/img_frame'
-    IMG_FRAME_LOG_PATH = f'{inspection_name_dir}/img_frame_log'
-    MODEL_PATH = f'{inspection_name_dir}/model'
-
-    # Create necessary directories
-    for path in [IMG_FULL_PATH, IMG_FRAME_PATH, IMG_FRAME_LOG_PATH, MODEL_PATH]:
-        os.makedirs(path, exist_ok=True)
-
-    model_list = [file.split('.')[0] for file in os.listdir(MODEL_PATH) if file.endswith('.h5')]
-    print()
-    print(f'{CYAN}===========  {inspection_name}  ==========={END}')
+    # List existing trained models (h5 files)
+    model_list = [p.stem for p in (paths['model']).glob("*.h5")]
+    print(f"\n{CYAN}===========  {inspection_name}  ==========={END}")
     print(f'model.h5 (ที่มี) = {len(model_list)} {model_list}')
 
-    json_data = json_load(os.path.join(inspection_name_dir, 'frames pos.json'))
+    # Load JSON data with frame and model info
+    frames_json_path = inspection_dir / 'frames pos.json'
+    json_data = json_load(str(frames_json_path))
     frame_dict = json_data['frames']
     model_dict = json_data['models']
 
-    for model_name, model in model_dict.items():
-        # อ่าน wait_training.json
-        wait_training_dict = json_load(f'{inspection_name_dir}/wait_training.json', {})
+    wait_training_path = inspection_dir / 'wait_training.json'
+    wait_training_dict = json_load(str(wait_training_path), {})
 
+    for model_name, model in model_dict.items():
         if not wait_training_dict.get(model_name, True):
             print(f'continue {model_name}')
             continue
-        print()
-        print(f'{model_name} {model}')
+
+        print(f"\n{model_name}: {model}")
         t1 = datetime.now()
         print('-------- >>> crop_img <<< ---------')
 
-        save_img(model_name, frame_dict)
+        save_img(model_name, frame_dict, {k: str(v) for k, v in paths.items()})
         t2 = datetime.now()
-        print(f'{t2 - t1} เวลาที่ใช้ในการเปลียน img_full เป็น shift_img ')
+        print(f'{t2 - t1} เวลาที่ใช้ในการเปลียน img_full เป็น shift_img')
         print('------- >>> training... <<< ---------')
-        create_model(model_name, img_height, img_width, batch_size, epochs)
-        json_update(f'{inspection_name_dir}/wait_training.json', {model_name: False})
+        create_model(model_name, config['img_height'], config['img_width'],
+                     config['batch_size'], config['epochs'],
+                     {k: paths[k] for k in ['img_frame', 'model']})
+        json_update(str(wait_training_path), {model_name: False})
         t3 = datetime.now()
-        print(f'{t2 - t1} เวลาที่ใช้ในการเปลียน img_full เป็น shift_img ')
-        print(f'{t3 - t2} เวลาที่ใช้ในการ training ')
-        print(f'{t3 - t1} เวลาที่ใช้ทั้งหมด')
-        print()
+        print(f'{t2 - t1} เวลาที่ใช้ในการเปลียน img_full เป็น shift_img')
+        print(f'{t3 - t2} เวลาที่ใช้ในการ training')
+        print(f'{t3 - t1} เวลาที่ใช้ทั้งหมด\n')
 
 
-def training(*args, config):
-    for inspection_name in args:
+def training(*inspection_names: str, config: dict) -> None:
+    for inspection_name in inspection_names:
         training_(inspection_name, config)
 
 
@@ -216,7 +231,7 @@ if __name__ == '__main__':
         "POWER-SUPPLY-FIXING-UNIT",
         "POWER-SUPPLY-FIXING-UNIT2",
         config={
-            'projects_directory': 'C:\\PythonProjects\\',
+            'projects_directory': r'C:\PythonProjects',
             'batch_size': 32,
             'img_height': 180,
             'img_width': 180,
