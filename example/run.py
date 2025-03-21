@@ -8,7 +8,7 @@ check_packages(
 )
 
 from hexss import json_load, close_port
-from AutoInspection import AutoInspection
+from AutoInspection import AutoInspection, training
 from AutoInspection.server import run_server
 
 
@@ -35,6 +35,17 @@ if __name__ == '__main__':
     }, True)
 
     close_port(config['ipv4'], config['port'], verbose=False)
+
+    training(
+        *config['model_names'],
+        config={
+            'projects_directory': config['projects_directory'],
+            'batch_size': 32,
+            'img_height': 180,
+            'img_width': 180,
+            'epochs': 5,
+        }
+    )
 
     m = Multithread()
     data = {
