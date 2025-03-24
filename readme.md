@@ -1,3 +1,24 @@
+1. create venv
+
+    ```bash
+    python3 -m venv .venv
+    ```
+
+2. activate venv
+
+    ```bash
+    source .venv/bin/activate
+    ```
+
+3. install hexss
+
+    ```bash
+    pip install hexss
+    ```
+
+example:
+
+```python
 import time
 from hexss import check_packages
 
@@ -69,3 +90,5 @@ if __name__ == '__main__':
     finally:
         data['play'] = False
         m.join()
+
+```
