@@ -96,7 +96,8 @@ class AutoInspection:
         self.update_scaled_img_surface()
 
     def get_surface_form_url(self):
-        url = "http://127.0.0.1:2002/image?source=video_capture&id=0"
+        # url = "http://127.0.0.1:2002/image?source=video_capture&id=0"
+        url = self.config['image_url']
         self.np_img = get_image(url, 'numpy')
         self.get_surface_form_np(self.np_img)
 
