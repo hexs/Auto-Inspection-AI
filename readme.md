@@ -1,22 +1,51 @@
-1. create venv
+# Auto-Inspection-AI
 
+## setup
+
+### Create Virtual Environment
+
+- Linux
     ```bash
     python3 -m venv .venv
     ```
+- Windows
+    ```bash
+    python -m venv .venv
+    ```
 
-2. activate venv
+### Activate Virtual Environment
 
+- Linux
     ```bash
     source .venv/bin/activate
     ```
+- Windows
+   ```bash
+   .venv/Scripts/activate
+   ```
 
-3. install hexss
+### Install `hexss`
 
-    ```bash
-    pip install hexss
-    ```
+```bash
+pip install hexss
+```
 
-example:
+> if use Pip with a Proxy Server.<br>
+> `pip install --proxy http://<proxyserver_name>:<port> hexss`<br>
+> or<br>
+> `pip install --proxy http://<usr_name>:<password>@<proxyserver_name>:<port> hexss`<br>
+>
+>- **such as**
+   >   ```bash
+   >   pip install --proxy http://150.61.8.70:10086 hexss
+   >   ```
+>- **Set Proxy** (if using Pip with a Proxy Server) for auto install packages
+   >   ```bash
+   >   hexss config proxies.http http://150.61.8.70:10086
+   >   hexss config proxies.https http://150.61.8.70:10086
+   >   ```
+
+## example for use
 
 ```python
 import time
@@ -45,8 +74,6 @@ if __name__ == '__main__':
         "projects_directory": r"C:\PythonProjects",
         'ipv4': '0.0.0.0',
         'port': 3000,
-        'device_note': 'PC, RP',
-        'device': 'RP',
         'resolution_note': '1920x1080, 800x480',
         'resolution': '800x480',
         'model_name': '-',
@@ -57,16 +84,23 @@ if __name__ == '__main__':
 
     close_port(config['ipv4'], config['port'], verbose=False)
 
-    training(
-        *config['model_names'],
-        config={
-            'projects_directory': config['projects_directory'],
-            'batch_size': 32,
-            'img_height': 180,
-            'img_width': 180,
-            'epochs': 5,
-        }
-    )
+    try:
+        training(
+            *config['model_names'],
+            config={
+                'projects_directory': config['projects_directory'],
+                'batch_size': 32,
+                'img_height': 180,
+                'img_width': 180,
+                'epochs': 5,
+                'shift_values': [-4, -2, 0, 2, 4],
+                'brightness_values': [-24, -12, 0, 12, 24],
+                'contrast_values': [-12, -6, 0, 6, 12],
+                'max_file': 20000,
+            }
+        )
+    except Exception as e:
+        print(e)
 
     m = Multithread()
     data = {
@@ -90,5 +124,6 @@ if __name__ == '__main__':
     finally:
         data['play'] = False
         m.join()
+
 
 ```
