@@ -16,7 +16,7 @@ from tensorflow.keras import layers, models
 from tensorflow.keras.models import Sequential
 
 
-def save_img(model_name: str, frame_dict: dict, paths: dict, resize: tuple = (180, 180)) -> None:
+def save_img(config: dict, model_name: str, frame_dict: dict, paths: dict, resize: tuple = (180, 180)) -> None:
     img_full_path = pathlib.Path(paths['img_full'])
     img_frame_path = pathlib.Path(paths['img_frame'])
     img_frame_log_path = pathlib.Path(paths['img_frame_log'])
@@ -66,22 +66,29 @@ def save_img(model_name: str, frame_dict: dict, paths: dict, resize: tuple = (18
             variant_dir = img_frame_path / model_name / status
             variant_dir.mkdir(parents=True, exist_ok=True)
 
-            shift_values = [-4, -2, 0, 2, 4]
-            for shift_y in shift_values:
-                for shift_x in shift_values:
+            for shift_y in config['shift_values']:
+                for shift_x in config['shift_values']:
                     shifted_crop = crop_img(img, xywh, shift=(shift_x, shift_y), resize=resize)
-                    for brightness in [-24, -12, 0, 12, 24]:
-                        for contrast in [-12, -6, 0, 6, 12]:
-                            # Always include the no-adjustment case or add a random choice
-                            if (brightness == 0 and contrast == 0) or random.choice([True, False]):
-                                img_variant = controller(shifted_crop, brightness, contrast)
-                                output_filename = f"{file_name}_{pos_name}_{status}_{shift_y}_{shift_x}_{brightness}_{contrast}.png"
-                                cv2.imwrite(str(variant_dir / output_filename), img_variant)
+                    for brightness in config['brightness_values']:
+                        for contrast in config['contrast_values']:
+                            img_variant = controller(shifted_crop, brightness, contrast)
+                            output_filename = f"{file_name}_{pos_name}_{status}_{shift_y}_{shift_x}_{brightness}_{contrast}.png"
+                            cv2.imwrite(str(variant_dir / output_filename), img_variant)
 
 
-def create_model(model_name: str, img_height: int, img_width: int, batch_size: int, epochs: int, paths: dict) -> None:
+def create_model(config: dict, model_name: str, img_height: int, img_width: int, batch_size: int, epochs: int,
+                 paths: dict) -> None:
     # Use pathlib for cross-platform path handling
     data_dir = pathlib.Path(paths['img_frame']) / model_name
+
+    # delete file if config['max_file']>0
+    for class_name in os.listdir(data_dir):
+        class_dir = data_dir / class_name
+        if len(os.listdir(class_dir)) > config['max_file']:
+            files = random.sample(os.listdir(class_dir), len(os.listdir(class_dir)) - config['max_file'])
+            for file in files:
+                os.remove(class_dir / file)
+
     # Count images in all subdirectories
     image_count = len(list(data_dir.glob('*/*.png')))
     print(f'image_count = {image_count}')
@@ -205,11 +212,11 @@ def training_(inspection_name: str, config: dict) -> None:
         t1 = datetime.now()
         print('-------- >>> crop_img <<< ---------')
 
-        save_img(model_name, frame_dict, {k: str(v) for k, v in paths.items()})
+        save_img(config, model_name, frame_dict, {k: str(v) for k, v in paths.items()})
         t2 = datetime.now()
         print(f'{t2 - t1} เวลาที่ใช้ในการเปลียน img_full เป็น shift_img')
         print('------- >>> training... <<< ---------')
-        create_model(model_name, config['img_height'], config['img_width'],
+        create_model(config, model_name, config['img_height'], config['img_width'],
                      config['batch_size'], config['epochs'],
                      {k: paths[k] for k in ['img_frame', 'model']})
         json_update(str(wait_training_path), {model_name: False})
@@ -236,5 +243,9 @@ if __name__ == '__main__':
             'img_height': 180,
             'img_width': 180,
             'epochs': 5,
+            'shift_values': [-4, -2, 0, 2, 4],
+            'brightness_values': [-24, -12, 0, 12, 24],
+            'contrast_values': [-12, -6, 0, 6, 12],
+            'max_file': 20000,
         }
     )

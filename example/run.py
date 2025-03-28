@@ -24,8 +24,6 @@ if __name__ == '__main__':
         "projects_directory": r"C:\PythonProjects",
         'ipv4': '0.0.0.0',
         'port': 3000,
-        'device_note': 'PC, RP',
-        'device': 'RP',
         'resolution_note': '1920x1080, 800x480',
         'resolution': '800x480',
         'model_name': '-',
@@ -36,16 +34,23 @@ if __name__ == '__main__':
 
     close_port(config['ipv4'], config['port'], verbose=False)
 
-    training(
-        *config['model_names'],
-        config={
-            'projects_directory': config['projects_directory'],
-            'batch_size': 32,
-            'img_height': 180,
-            'img_width': 180,
-            'epochs': 5,
-        }
-    )
+    try:
+        training(
+            *config['model_names'],
+            config={
+                'projects_directory': config['projects_directory'],
+                'batch_size': 32,
+                'img_height': 180,
+                'img_width': 180,
+                'epochs': 5,
+                'shift_values': [-4, -2, 0, 2, 4],
+                'brightness_values': [-24, -12, 0, 12, 24],
+                'contrast_values': [-12, -6, 0, 6, 12],
+                'max_file': 20000,
+            }
+        )
+    except Exception as e:
+        print(e)
 
     m = Multithread()
     data = {
