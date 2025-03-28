@@ -1,8 +1,10 @@
 # Auto-Inspection-AI
 
+---
+
 ## setup
 
-### Create Virtual Environment
+### 1. Create Virtual Environment
 
 - Linux
     ```bash
@@ -13,7 +15,7 @@
     python -m venv .venv
     ```
 
-### Activate Virtual Environment
+### 2. Activate Virtual Environment
 
 - Linux
     ```bash
@@ -24,7 +26,7 @@
    .venv/Scripts/activate
    ```
 
-### Install `hexss`
+### 3. Install `hexss`
 
 ```bash
 pip install hexss
@@ -44,6 +46,8 @@ pip install hexss
    >   hexss config proxies.http http://150.61.8.70:10086
    >   hexss config proxies.https http://150.61.8.70:10086
    >   ```
+
+---
 
 ## example for use
 
