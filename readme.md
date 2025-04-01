@@ -53,6 +53,7 @@ pip install hexss
 
 ```python
 import time
+from pathlib import Path
 from hexss import check_packages
 
 check_packages(
@@ -62,6 +63,7 @@ check_packages(
 )
 
 from hexss import json_load, close_port
+from hexss.github import download
 from AutoInspection import AutoInspection, training
 from AutoInspection.server import run_server
 
@@ -79,15 +81,22 @@ if __name__ == '__main__':
         'ipv4': '0.0.0.0',
         'port': 3000,
         'resolution_note': '1920x1080, 800x480',
-        'resolution': '800x480',
+        'resolution': '1920x1080',
         'model_name': '-',
-        'model_names': ["QC7-7990-000", "POWER-SUPPLY-FIXING-UNIT"],
+        'model_names': ["QC7-7990-000-Example", ],
         'fullscreen': True,
         'image_url': 'http://127.0.0.1:2002/image?source=video_capture&id=0',
     }, True)
 
     close_port(config['ipv4'], config['port'], verbose=False)
 
+    # download example
+    download(
+        'hexs', 'auto_inspection_data__QC7-7990-000-Example',
+        dest_folder=Path(config['projects_directory']) / 'auto_inspection_data__QC7-7990-000-Example'
+    )
+
+    # training
     try:
         training(
             *config['model_names'],
