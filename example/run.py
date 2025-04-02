@@ -29,7 +29,7 @@ if __name__ == '__main__':
         'resolution_note': '1920x1080, 800x480',
         'resolution': '1920x1080',
         'model_name': '-',
-        'model_names': ["QC7-7990-000-Example",],
+        'model_names': ["QC7-7990-000-Example", ],
         'fullscreen': True,
         'image_url': 'http://127.0.0.1:2002/image?source=video_capture&id=0',
     }, True)

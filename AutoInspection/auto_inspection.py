@@ -279,6 +279,11 @@ class AutoInspection:
         self.res_textbox.update_text('res', text='-')
         self.setup_NG_details()
 
+        if self.model_data_dropdown:
+            self.model_data_dropdown.kill()
+        self.create_model_data_dropdown(self.data['model_name'])
+
+
     def predict(self):
         self.res_textbox.update_text('res', text='Wait', color=(255, 255, 0))
         self.manager.draw_ui(self.display)
@@ -812,6 +817,21 @@ class AutoInspection:
                 self.manager.set_active_cursor(pg.SYSTEM_CURSOR_HAND)
             if event.type == pygame_gui.UI_BUTTON_ON_UNHOVERED:
                 self.manager.set_active_cursor(pg.SYSTEM_CURSOR_ARROW)
+
+            if event.type == 768:
+                if event.unicode in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-<>':
+                    self.buff += event.unicode
+                    self.buff = self.buff[-20:]
+
+                    # <FM-R511-000>
+                    if self.buff[-1] == '>':
+                        model_name = self.buff[:-1]
+                        model_name = model_name.split('<')[-1]
+                        print(model_name)
+                        self.buff += '-'
+
+                        self.data['model_name'] = model_name
+                        self.change_model()
 
         self.right_click.events(events)
 
