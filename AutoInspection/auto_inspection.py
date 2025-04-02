@@ -185,6 +185,8 @@ class AutoInspection:
         self.pass_n = 0
         self.fail_n = 0
 
+        self.buff = '----------'
+
     def set_name_for_debug(self, file_name=None):
         self.file_name = datetime.now().strftime("%y%m%d %H%M%S") if file_name is None else file_name
         json_path = join(self.model_name_dir(), 'img_full', f'{self.file_name}.json')
@@ -282,7 +284,6 @@ class AutoInspection:
         if self.model_data_dropdown:
             self.model_data_dropdown.kill()
         self.create_model_data_dropdown(self.data['model_name'])
-
 
     def predict(self):
         self.res_textbox.update_text('res', text='Wait', color=(255, 255, 0))
@@ -819,7 +820,7 @@ class AutoInspection:
                 self.manager.set_active_cursor(pg.SYSTEM_CURSOR_ARROW)
 
             if event.type == 768:
-                if event.unicode and event.unicode in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-<>':
+                if event.dict.get('unicode') and event.unicode in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-<>':
                     self.buff += event.unicode
                     self.buff = self.buff[-20:]
 
