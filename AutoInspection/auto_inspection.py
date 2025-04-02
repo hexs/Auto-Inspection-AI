@@ -819,7 +819,7 @@ class AutoInspection:
                 self.manager.set_active_cursor(pg.SYSTEM_CURSOR_ARROW)
 
             if event.type == 768:
-                if event.unicode in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-<>':
+                if event.unicode and event.unicode in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-<>':
                     self.buff += event.unicode
                     self.buff = self.buff[-20:]
 
