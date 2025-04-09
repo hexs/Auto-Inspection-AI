@@ -7,7 +7,7 @@ check_packages(
     auto_install=True
 )
 
-from hexss import json_load, close_port
+from hexss import json_load, close_port, system, username
 from hexss.serial import Arduino
 from AutoInspection import AutoInspection
 from AutoInspection.server import run_server
@@ -15,7 +15,7 @@ from AutoInspection.server import run_server
 
 def handle_arduino_events(data):
     ar = Arduino('Arduino', 'USB-SERIAL CH340')
-    ar.pinMode(3,2)
+    ar.pinMode(3, 2)
     ar.waiting_for_reply(5)
 
     while data['play']:
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     from hexss.threading import Multithread
 
     config = json_load('config.json', {
-        "projects_directory": r"C:\PythonProjects",
+        'projects_directory': r'C:\PythonProjects' if system == 'Windows' else f'home/{username}/PythonProjects',
         'ipv4': '0.0.0.0',
         'port': 3000,
         'resolution_note': '1920x1080, 800x480',
