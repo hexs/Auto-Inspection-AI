@@ -140,3 +140,31 @@ if __name__ == '__main__':
 
 
 ```
+
+### If use with arduino
+
+1. import lib
+
+```python
+from hexss.serial import Arduino
+```
+
+2. Handle arduino function
+
+```python
+def handle_arduino_events():
+    ar = Arduino('Arduino', 'USB-SERIAL CH340')
+    ar.pinMode(3, 2)
+    ar.waiting_for_reply(5)
+
+    while data['play']:
+        if ar.is_falling_edge(3):
+            data['events'].append('Capture&Predict')
+        time.sleep(0.02)
+```
+
+3. Add to multithread
+
+```python
+m.add_func(handle_arduino_events, )
+```
