@@ -9,7 +9,6 @@ check_packages(
 )
 
 from hexss import json_load, close_port, system, username
-from hexss.github import download
 from AutoInspection import AutoInspection, training
 from AutoInspection.server import run_server
 
@@ -23,7 +22,7 @@ if __name__ == '__main__':
     from hexss.threading import Multithread
 
     config = json_load('config.json', {
-        'projects_directory': r'C:\PythonProjects' if system == 'Windows' else f'home/{username}/PythonProjects',
+        'projects_directory': r'C:\PythonProjects' if system == 'Windows' else f'/home/{username}/PythonProjects',
         'ipv4': '0.0.0.0',
         'port': 3000,
         'resolution_note': '1920x1080, 800x480',
@@ -39,6 +38,8 @@ if __name__ == '__main__':
     # download example
     if 'auto_inspection_data__QC7-7990-000-Example' not in \
             list(p.name for p in Path(config['projects_directory']).iterdir()):
+        from hexss.github import download
+
         download(
             'hexs', 'auto_inspection_data__QC7-7990-000-Example',
             dest_folder=Path(config['projects_directory']) / 'auto_inspection_data__QC7-7990-000-Example'

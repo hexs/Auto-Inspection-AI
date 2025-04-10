@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 from datetime import datetime, timedelta
 from hexss import check_packages
 
@@ -10,7 +11,7 @@ check_packages(
 )
 
 from hexss import json_load, close_port, system, username
-from AutoInspection import AutoInspection
+from AutoInspection import AutoInspection, training
 from AutoInspection.server import run_server
 
 
@@ -62,11 +63,11 @@ if __name__ == '__main__':
     from hexss.threading import Multithread
 
     config = json_load('config.json', {
-        'projects_directory': r'C:\PythonProjects' if system == 'Windows' else f'home/{username}/PythonProjects',
+        'projects_directory': r'C:\PythonProjects' if system == 'Windows' else f'/home/{username}/PythonProjects',
         'ipv4': '0.0.0.0',
         'port': 3000,
         'resolution_note': '1920x1080, 800x480',
-         'resolution': '1920x1080' if system == 'Windows' else '800x480',
+        'resolution': '1920x1080' if system == 'Windows' else '800x480',
         'model_name': '-',
         'model_names': ["QC7-7990-000-Example", ],
         'fullscreen': True,
@@ -75,6 +76,34 @@ if __name__ == '__main__':
 
     close_port(config['ipv4'], config['port'], verbose=False)
 
+    # download example
+    if 'auto_inspection_data__QC7-7990-000-Example' not in \
+            list(p.name for p in Path(config['projects_directory']).iterdir()):
+        from hexss.github import download
+
+        download(
+            'hexs', 'auto_inspection_data__QC7-7990-000-Example',
+            dest_folder=Path(config['projects_directory']) / 'auto_inspection_data__QC7-7990-000-Example'
+        )
+
+    # training
+    try:
+        training(
+            *config['model_names'],
+            config={
+                'projects_directory': config['projects_directory'],
+                'batch_size': 32,
+                'img_height': 180,
+                'img_width': 180,
+                'epochs': 5,
+                'shift_values': [-4, -2, 0, 2, 4],
+                'brightness_values': [-24, -12, 0, 12, 24],
+                'contrast_values': [-12, -6, 0, 6, 12],
+                'max_file': 20000,
+            }
+        )
+    except Exception as e:
+        print(e)
     data = {
         'config': config,
         'model_name': config['model_name'],
