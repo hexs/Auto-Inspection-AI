@@ -5,7 +5,7 @@ from hexss import check_packages
 check_packages(
     'numpy', 'opencv-python', 'Flask', 'requests', 'pygame', 'pygame-gui',
     'tensorflow', 'keras', 'pyzbar', 'AutoInspection', 'matplotlib',
-    'gpiozero',
+    'gpiozero', 'lgpio', 'pigpio',
     auto_install=True
 )
 
@@ -66,7 +66,7 @@ if __name__ == '__main__':
         'ipv4': '0.0.0.0',
         'port': 3000,
         'resolution_note': '1920x1080, 800x480',
-        'resolution': '1920x1080',
+         'resolution': '1920x1080' if system == 'Windows' else '800x480',
         'model_name': '-',
         'model_names': ["QC7-7990-000-Example", ],
         'fullscreen': True,

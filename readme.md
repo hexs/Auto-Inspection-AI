@@ -2,157 +2,99 @@
 
 ---
 
-## setup
+## Setup Instructions
 
-### 1. Create Virtual Environment
+### Linux Setup
 
-- Linux
-    ```bash
-    python3 -m venv .venv
-    ```
-- Windows
-    ```bash
-    python -m venv .venv
-    ```
-
-### 2. Activate Virtual Environment
-
-- Linux
-    ```bash
-    source .venv/bin/activate
-    ```
-- Windows
-   ```bash
-   .venv/Scripts/activate
+1. **Create Project Folder**
+   ```
+   mkdir -p /home/pi/PythonProjects/auto_inspection
    ```
 
-### 3. Install `hexss`
+2. **Change Directory to Project Folder**
+   ```
+   cd /home/pi/PythonProjects/auto_inspection
+   ```
 
-```bash
-pip install hexss
-```
+3. **Create Virtual Environment**
+   ```
+   python3 -m venv .venv
+   ```
 
-> if use Pip with a Proxy Server.<br>
-> `pip install --proxy http://<proxyserver_name>:<port> hexss`<br>
-> or<br>
-> `pip install --proxy http://<usr_name>:<password>@<proxyserver_name>:<port> hexss`<br>
->
->- **such as**
-   >   ```bash
-   >   pip install --proxy http://150.61.8.70:10086 hexss
-   >   ```
->- **Set Proxy** (if using Pip with a Proxy Server) for auto install packages
-   >   ```bash
-   >   hexss config proxies.http http://150.61.8.70:10086
-   >   hexss config proxies.https http://150.61.8.70:10086
-   >   ```
+4. **Activate Virtual Environment**
+   ```
+   source .venv/bin/activate
+   ```
 
 ---
 
-## example for use
+### Windows Setup
 
-```python
-import time
-from pathlib import Path
-from hexss import check_packages
+1. **Create Project Folder**
+   ```
+   mkdir C:\\PythonProjects\auto_inspection
+   ```
 
-check_packages(
-    'numpy', 'opencv-python', 'Flask', 'requests', 'pygame', 'pygame-gui',
-    'tensorflow', 'keras', 'pyzbar', 'AutoInspection', 'matplotlib',
-    auto_install=True
-)
+2. **Change Directory to Project Folder**
+   ```
+   cd C:\\PythonProjects\auto_inspection
+   ```
 
-from hexss import json_load, close_port
-from hexss.github import download
-from AutoInspection import AutoInspection, training
-from AutoInspection.server import run_server
+3. **Create Virtual Environment**
+   ```
+   python -m venv .venv
+   ```
 
+4. **Activate Virtual Environment**
+   ```
+   .venv/Scripts/activate
+   ```
 
-def main(data):
-    app = AutoInspection(data)
-    app.run()
+---
 
+## Installing `hexss`
 
-if __name__ == '__main__':
-    from hexss.threading import Multithread
-
-    config = json_load('config.json', {
-        "projects_directory": r"C:\PythonProjects",
-        'ipv4': '0.0.0.0',
-        'port': 3000,
-        'resolution_note': '1920x1080, 800x480',
-        'resolution': '1920x1080',
-        'model_name': '-',
-        'model_names': ["QC7-7990-000-Example", ],
-        'fullscreen': True,
-        'image_url': 'http://127.0.0.1:2002/image?source=video_capture&id=0',
-    }, True)
-
-    close_port(config['ipv4'], config['port'], verbose=False)
-
-    # download example
-    download(
-        'hexs', 'auto_inspection_data__QC7-7990-000-Example',
-        dest_folder=Path(config['projects_directory']) / 'auto_inspection_data__QC7-7990-000-Example'
-    )
-
-    # training
-    try:
-        training(
-            *config['model_names'],
-            config={
-                'projects_directory': config['projects_directory'],
-                'batch_size': 32,
-                'img_height': 180,
-                'img_width': 180,
-                'epochs': 5,
-                'shift_values': [-4, -2, 0, 2, 4],
-                'brightness_values': [-24, -12, 0, 12, 24],
-                'contrast_values': [-12, -6, 0, 6, 12],
-                'max_file': 20000,
-            }
-        )
-    except Exception as e:
-        print(e)
-
-    m = Multithread()
-    data = {
-        'config': config,
-        'model_name': config['model_name'],
-        'model_names': config['model_names'],
-        'events': [],
-        'play': True,
-    }
-
-    m.add_func(main, args=(data,))
-    m.add_func(run_server, args=(data,), join=False)
-
-    m.start()
-    try:
-        while data['play']:
-            # print(m.get_status())
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("\nShutting down...")
-    finally:
-        data['play'] = False
-        m.join()
-
+Install the required package using `pip`:
 
 ```
-
-### If use with arduino
-
-1. import lib
-
-```python
-from hexss.serial import Arduino
+pip install hexss
 ```
 
-2. Handle arduino function
+> **Note:** If you are using `pip` with a proxy server, you can use the following commands:
+>
+> ```
+> pip install --proxy http://<proxyserver_name>:<port> hexss
+> pip install --proxy http://<usr_name>:<password>@<proxyserver_name>:<port> hexss
+> ```
+>
+> Example:
+> ```
+> pip install --proxy http://150.61.8.70:10086 hexss
+> ```
+>
+> To set up a proxy for automatic package installation:
+> ```
+> hexss config proxies.http http://150.61.8.70:10086
+> hexss config proxies.https http://150.61.8.70:10086
+> ```
 
-```python
+---
+
+## Example Usage
+
+### General Example
+
+See the [full example code](https://github.com/hexs/Auto-Inspection-AI/blob/main/example/run.py) for basic usage.
+
+---
+
+### Using with Arduino
+
+1. **Handle Arduino Functionality**
+
+```
 def handle_arduino_events():
+    from hexss.serial import Arduino
     ar = Arduino('Arduino', 'USB-SERIAL CH340')
     ar.pinMode(3, 2)
     ar.waiting_for_reply(5)
@@ -163,8 +105,69 @@ def handle_arduino_events():
         time.sleep(0.02)
 ```
 
-3. Add to multithread
+2. **Add to Multithread**
 
-```python
-m.add_func(handle_arduino_events, )
 ```
+m.add_func(handle_arduino_events)
+```
+
+See the [full example code](https://github.com/hexs/Auto-Inspection-AI/blob/main/example/run_with_arduino.py) for Arduino integration.
+
+---
+
+### Using with Raspberry Pi
+
+1. **Handle Raspberry Pi I/O**
+
+```
+def handle_raspberrypi_io(data, ui):
+    from gpiozero import LED, Button
+    from datetime import datetime, timedelta
+
+    g_button = Button(5)
+    y_button = Button(6)
+    g_led = LED(17)
+    y_led = LED(27)
+
+    last_now = datetime.now()
+    g_button_status = [0, 0]
+    y_button_status = [0, 0]
+    while True:
+        now = datetime.now()
+        g_button_status[0] = g_button_status[1]
+        g_button_status[1] = g_button.is_pressed
+        y_button_status[0] = y_button_status[1]
+        y_button_status[1] = y_button.is_pressed
+
+        if g_button_status[1] and not g_button_status[0]:
+            data['events'].append('Capture&Predict')
+
+        if y_button_status[1] and not y_button_status[0]:
+            data['events'].append('Capture&Predict')
+
+        if now - last_now > timedelta(seconds=0.5):
+            last_now = now
+
+            res = ui.res_textbox.texts.get('res')
+            if res and res.text == 'Wait':
+                y_led.off()
+                g_led.toggle()
+            elif res and res.text == 'NG':
+                g_led.off()
+                y_led.toggle()
+            else:
+                y_led.off()
+                g_led.off()
+
+        time.sleep(0.02)
+```
+
+2. **Add to Multithread**
+
+```
+m.add_func(handle_raspberrypi_io, args=(data, ui))
+```
+
+See the [full example code](https://github.com/hexs/Auto-Inspection-AI/blob/main/example/run_with_raspberry_pi.py) for Raspberry Pi integration.
+
+---

@@ -37,10 +37,12 @@ if __name__ == '__main__':
     close_port(config['ipv4'], config['port'], verbose=False)
 
     # download example
-    download(
-        'hexs', 'auto_inspection_data__QC7-7990-000-Example',
-        dest_folder=Path(config['projects_directory']) / 'auto_inspection_data__QC7-7990-000-Example'
-    )
+    if 'auto_inspection_data__QC7-7990-000-Example' not in \
+            list(p.name for p in Path(config['projects_directory']).iterdir()):
+        download(
+            'hexs', 'auto_inspection_data__QC7-7990-000-Example',
+            dest_folder=Path(config['projects_directory']) / 'auto_inspection_data__QC7-7990-000-Example'
+        )
 
     # training
     try:
