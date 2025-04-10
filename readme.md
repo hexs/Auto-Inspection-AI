@@ -92,7 +92,7 @@ See the [full example code](https://github.com/hexs/Auto-Inspection-AI/blob/main
 
 1. **Handle Arduino Functionality**
 
-```
+```python
 def handle_arduino_events():
     from hexss.serial import Arduino
     ar = Arduino('Arduino', 'USB-SERIAL CH340')
@@ -107,7 +107,7 @@ def handle_arduino_events():
 
 2. **Add to Multithread**
 
-```
+```python
 m.add_func(handle_arduino_events)
 ```
 
@@ -119,7 +119,7 @@ See the [full example code](https://github.com/hexs/Auto-Inspection-AI/blob/main
 
 1. **Handle Raspberry Pi I/O**
 
-```
+```python
 def handle_raspberrypi_io(data, ui):
     from gpiozero import LED, Button
     from datetime import datetime, timedelta
@@ -164,7 +164,7 @@ def handle_raspberrypi_io(data, ui):
 
 2. **Add to Multithread**
 
-```
+```python
 m.add_func(handle_raspberrypi_io, args=(data, ui))
 ```
 
