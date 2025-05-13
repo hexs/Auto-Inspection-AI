@@ -7,6 +7,7 @@ check_packages(
     'numpy', 'opencv-python', 'Flask', 'requests', 'pygame', 'pygame-gui',
     'tensorflow', 'keras', 'pyzbar', 'AutoInspection', 'matplotlib',
     'gpiozero', 'lgpio', 'pigpio',
+    'flatbuffers==23.5.26',
     auto_install=True
 )
 

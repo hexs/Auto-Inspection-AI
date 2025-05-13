@@ -5,6 +5,7 @@ from hexss import check_packages
 check_packages(
     'numpy', 'opencv-python', 'Flask', 'requests', 'pygame', 'pygame-gui',
     'tensorflow', 'keras', 'pyzbar', 'AutoInspection', 'matplotlib', 'pyserial',
+    'flatbuffers==23.5.26',
     auto_install=True
 )
 
