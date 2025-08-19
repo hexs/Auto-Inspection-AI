@@ -10,6 +10,7 @@ check_packages(
 )
 
 from hexss import json_load, close_port, system, username
+from hexss.server import camera_server
 from AutoInspection import AutoInspection, training
 from AutoInspection.server import run_server
 
@@ -27,7 +28,7 @@ if __name__ == '__main__':
         'ipv4': '0.0.0.0',
         'port': 3000,
         'resolution_note': '1920x1080, 800x480',
-        'resolution': '1920x1080',
+        'resolution': '1920x1080' if system == 'Windows' else '800x480',
         'model_name': '-',
         'model_names': ["QC7-7990-000-Example", ],
         'fullscreen': True,
@@ -73,7 +74,7 @@ if __name__ == '__main__':
         'events': [],
         'play': True,
     }
-
+    m.add_func(camera_server.run, join=False)
     m.add_func(main, args=(data,))
     m.add_func(run_server, args=(data,), join=False)
 

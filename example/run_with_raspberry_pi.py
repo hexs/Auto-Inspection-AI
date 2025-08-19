@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
         download(
             'hexs', 'auto_inspection_data__QC7-7990-000-Example',
-            dest_folder=Path(config['projects_directory']) / 'auto_inspection_data__QC7-7990-000-Example'
+            dest_dir=Path(config['projects_directory']) / 'auto_inspection_data__QC7-7990-000-Example'
         )
 
     # training
