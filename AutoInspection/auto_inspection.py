@@ -95,11 +95,10 @@ class AutoInspection:
         self.img_surface = pg.image.frombuffer(np_img.tobytes(), np_img.shape[1::-1], "BGR")
         self.update_scaled_img_surface()
 
-    def get_surface_form_url(self):
-        # url = "http://127.0.0.1:2002/image?source=video_capture&id=0"
-        url = self.config['image_url']
-        self.np_img = get_image(url, 'numpy')
-        self.get_surface_form_np(self.np_img)
+    def get_surface_form_config_data(self):
+        if self.data.get('img') is not None:
+            self.np_img = self.data.get('img')
+            self.get_surface_form_np(self.np_img)
 
     def show_rects_to_surface(self, frame_dict, type='frame'):
         if self.is_show_rects:
@@ -234,9 +233,9 @@ class AutoInspection:
             frames_pos_file_path = join(self.model_name_dir(), 'frames pos.json')
             json_data = json_load(frames_pos_file_path, {})
 
-            self.frame_dict = json_data.get('frames')
-            self.model_dict = json_data.get('models')
-            self.mark_dict = json_data.get('marks')
+            self.frame_dict: dict = json_data.get('frames')
+            self.model_dict: dict = json_data.get('models')
+            self.mark_dict: dict = json_data.get('marks')
             self.reset_frame()
 
             for name, frame in self.mark_dict.items() if self.mark_dict else ():
@@ -253,7 +252,10 @@ class AutoInspection:
                           f'file error <data>/{self.data["model_name"]}/model/{name}.h5{END}')
                     print(PINK, e, END, sep='')
                 try:
-                    model.update(json_load(join(self.model_name_dir(), f'model/{name}.json')))
+                    json_file_with_model = json_load(join(self.model_name_dir(), f'model/{name}.json'))
+                    if json_file_with_model.get('class_names'):
+                        json_file_with_model['model_class_names'] = json_file_with_model.pop('class_names')
+                    model.update(json_file_with_model)
                     pprint(model)
                     if model['model_class_names'] != model['class_names']:
                         print(f'{YELLOW}class_names       = {model["class_names"]}')
@@ -721,7 +723,7 @@ class AutoInspection:
     def panel2_update(self, events):
 
         def capture_button():
-            self.get_surface_form_url()
+            self.get_surface_form_config_data()
             self.reset_frame()
             self.set_name_for_debug()
 
@@ -798,7 +800,7 @@ class AutoInspection:
             #         self.set_name_for_debug()
 
         if self.auto_cap_button.text == 'Stop':
-            self.get_surface_form_url()
+            self.get_surface_form_config_data()
 
     def setup_ui(self, ):
         self.panel0_setup()

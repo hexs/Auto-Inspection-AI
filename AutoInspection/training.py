@@ -109,7 +109,7 @@ def create_model(config: dict, model_name: str, img_height: int, img_width: int,
     model_path = pathlib.Path(paths['model'])
     model_path.mkdir(parents=True, exist_ok=True)
     with open(model_path / f"{model_name}.json", 'w') as file:
-        json.dump({"model_class_names": class_names}, file, indent=4)
+        json.dump({"class_names": class_names, "img_size": (img_width, img_height)}, file, indent=4)
 
     # Visualize a sample of the training data
     plt.figure(figsize=(20, 10))
@@ -129,8 +129,20 @@ def create_model(config: dict, model_name: str, img_height: int, img_width: int,
 
     # Build the model
     num_classes = len(class_names)
+    data_augmentation = keras.Sequential(
+        [
+            layers.RandomFlip("horizontal",
+                              input_shape=(img_height,
+                                           img_width,
+                                           3)),
+            layers.RandomRotation(0.1),
+            layers.RandomZoom(0.1),
+        ]
+    )
+
     model = Sequential([
-        layers.Rescaling(1. / 255, input_shape=(img_height, img_width, 3)),
+        data_augmentation,
+        layers.Rescaling(1. / 255),
         layers.Conv2D(16, 3, padding='same', activation='relu'),
         layers.MaxPooling2D(),
         layers.Conv2D(32, 3, padding='same', activation='relu'),
@@ -140,10 +152,11 @@ def create_model(config: dict, model_name: str, img_height: int, img_width: int,
         layers.Dropout(0.2),
         layers.Flatten(),
         layers.Dense(128, activation='relu'),
-        layers.Dense(num_classes)
+        layers.Dense(num_classes, name="outputs")
     ])
+
     model.compile(optimizer='adam',
-                  loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                   metrics=['accuracy'])
     model.summary()
 
@@ -155,18 +168,22 @@ def create_model(config: dict, model_name: str, img_height: int, img_width: int,
     loss = history.history.get('loss', [])
     val_loss = history.history.get('val_loss', [])
     epochs_range = range(epochs)
-
-    plt.figure(figsize=(10, 8))
-    plt.plot(epochs_range, acc, label='Training Accuracy', ls='--', color='blue')
-    plt.plot(epochs_range, val_acc, label='Validation Accuracy', color=(0, 0.8, 0.5))
-    plt.plot(epochs_range, loss, label='Training Loss', ls='--', color='red')
-    plt.plot(epochs_range, val_loss, label='Validation Loss', color=(1, 0.5, 0.1))
-    plt.legend(loc='best')
-    plt.title(model_name)
-    plt.savefig(str(model_path / f"{model_name}_graf.png"))
+    plt.figure(figsize=(8, 8))
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs_range, acc, label='Training Accuracy')
+    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+    plt.legend(loc='lower right')
+    plt.title('Training and Validation Accuracy')
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs_range, loss, label='Training Loss')
+    plt.plot(epochs_range, val_loss, label='Validation Loss')
+    plt.legend(loc='upper right')
+    plt.title('Training and Validation Loss')
+    plt.savefig(str(model_path / f"{model_name}.png"))
     plt.close()
 
     # Save the trained model
+    model.save(str(model_path / f"{model_name}.keras"))
     model.save(str(model_path / f"{model_name}.h5"))
 
     # Clean up the image frame folder after training
