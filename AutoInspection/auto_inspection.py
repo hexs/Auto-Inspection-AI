@@ -200,6 +200,7 @@ class AutoInspection:
             if not frame.get('frame_name'):
                 frame['frame_name'] = name
         self.res_textbox.update_text('res', text='-', color=(0, 0, 0))
+        self.config['res'] = '-'
         self.setup_NG_details()
 
     def setup_NG_details(self):
@@ -281,6 +282,7 @@ class AutoInspection:
             self.predict_button.enable() if self.model_dict else self.predict_button.disable()
 
         self.res_textbox.update_text('res', text='-')
+        self.config['res'] = '-'
         self.setup_NG_details()
 
         if self.model_data_dropdown:
@@ -289,6 +291,7 @@ class AutoInspection:
 
     def predict(self):
         self.res_textbox.update_text('res', text='Wait', color=(255, 255, 0))
+        self.config['res'] = 'Wait'
         self.manager.draw_ui(self.display)
         pg.display.update()
 
@@ -332,9 +335,11 @@ class AutoInspection:
         if res_surface_text == 'OK':
             self.pass_n += 1
             self.res_textbox.update_text('res', text='OK', color=(0, 255, 0))
+            self.config['res'] = 'OK'
         else:
             self.fail_n += 1
             self.res_textbox.update_text('res', text='NG', color=(255, 0, 0))
+            self.config['res'] = 'NG'
         self.update_status()
         self.save_result = 1
 

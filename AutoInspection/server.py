@@ -39,9 +39,32 @@ def index():
 
 @app.route('/data', methods=['GET'])
 def data():
-    data = app.config['data']
-    print(data)
-    return jsonify(data), 200
+    def filter_list(d: list):
+        filtered = []
+        for v in d:
+            if isinstance(v, (int, float, bool, str)):
+                filtered.append(v)
+            if isinstance(v, (list, tuple)):
+                filtered.append(filter_list(v))
+            if isinstance(v, dict):
+                filtered.append(filter_dict(v))
+        return filtered
+
+    def filter_dict(d):
+        filtered = {}
+        for k, v in d.items():
+            if isinstance(v, (int, float, bool, str)):
+                filtered[k] = v
+            if isinstance(v, (list, tuple)):
+                filtered[k] = filter_list(v)
+            if isinstance(v, dict):
+                filtered[k] = filter_dict(v)
+        return filtered
+
+    data: dict = app.config['data']
+    filtered_data = filter_dict(data)
+
+    return jsonify(filtered_data), 200
 
 
 def run_server(data):
