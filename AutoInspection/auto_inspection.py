@@ -1,10 +1,12 @@
 import json
 import os
 from datetime import datetime
+from pathlib import Path
 from pprint import pprint
 import numpy as np
 import cv2
 import pygame as pg
+from hexss.box import Box
 from hexss.image.func import pygame_surface_to_numpy
 from pygame import Rect, Surface, mouse, MOUSEBUTTONDOWN
 import pygame_gui
@@ -15,14 +17,27 @@ from pygame_gui.elements import UIPanel, UILabel, UIButton, UIDropDownMenu, UISe
 from pygame_gui.windows import UIFileDialog
 from keras import models
 from hexss.constants.terminal_color import *
-from .adj_image import adj_image
 from hexss import json_load, json_update
-from hexss.image import get_image, crop_img
+from hexss.image import get_image, crop_img, Image
 from .theme import theme
 from .textbox_surface import TextBoxSurface, gradient_surface
 from .pygame_function import putText, UITextBox
 from os.path import join
 from .summary_graphs import summary
+from PIL import Image as PILImage
+
+
+def pil_to_numpy_strict(img):
+    if hasattr(img, "image") and not isinstance(img, PILImage.Image):
+        img = img.image
+
+    w, h = img.size
+    bands = len(img.getbands())  # 1 for L, 3 for RGB, 4 for RGBA
+    buf = np.frombuffer(img.tobytes(), dtype=np.uint8)
+    if bands == 1:
+        return buf.reshape(h, w)
+    else:
+        return buf.reshape(h, w, bands)
 
 
 class RightClick:
@@ -47,6 +62,8 @@ class RightClick:
         if len(options_list) > 0:
             selection_size = (max_character * 8 + 20, 6 + 25 * len(options_list))
             pos = np.minimum(mouse_pos, self.window_size - selection_size)
+            options_list = list(options_list)
+            options_list.sort(),
             self.selection = UISelectionList(
                 Rect(pos, selection_size),
                 item_list=options_list,
@@ -167,6 +184,7 @@ class AutoInspection:
         self.data['model_name'] = self.config['model_name']
 
         self.np_img = self.IMG.copy()
+        self.mark_template_im = None
         # if ui:
         pg.init()
         pg.display.set_caption('Auto Inspection')
@@ -238,6 +256,10 @@ class AutoInspection:
             self.model_dict: dict = json_data.get('models')
             self.mark_dict: dict = json_data.get('marks')
             self.reset_frame()
+
+            mark_template_path = Path(self.model_name_dir()) / 'mark_template.png'
+            if mark_template_path.exists():
+                self.mark_template_im = Image(mark_template_path)
 
             for name, frame in self.mark_dict.items() if self.mark_dict else ():
                 frame['color_rect'] = (200, 20, 100)
@@ -736,7 +758,31 @@ class AutoInspection:
             self.auto_cap_button.set_text('Auto' if self.auto_cap_button.text == 'Stop' else 'Stop')
 
         def adj_button():
-            self.np_img = adj_image(self.np_img, self.data['model_name'], self.mark_dict)
+            if self.mark_template_im is None:
+                return
+
+            im2 = Image(self.np_img.copy())
+
+            for mark in self.mark_dict.values():
+                box = Box(xywhn=mark['xywh'])
+                box.set_size(self.mark_template_im.size)
+                mark['im'] = self.mark_template_im.crop(box)
+                scale_xywhn = box.scale(mark.get('k', 3)).xywhn
+                mark['scale_xywhn'] = scale_xywhn
+
+            pts_src = []
+            pts_dst = []
+            for mark in self.mark_dict.values():
+                xywhn_mark_area = mark['scale_xywhn']
+                mark_im = mark['im']
+                xy, score = im2.best_match_location(mark_im, xywhn=xywhn_mark_area)
+                pts_dst.append(Box(size=im2.size, xywhn=mark['xywh']).xy)
+                pts_src.append(xy)
+
+            im2.align_image(pts_src, pts_dst)
+            arr = pil_to_numpy_strict(im2.image)
+            self.np_img = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+
             self.reset_frame()
 
         is_full_hd = self.resolution == '1920x1080'
