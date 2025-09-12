@@ -1,6 +1,8 @@
 import json
 import os
 from datetime import datetime
+import re
+import pathlib
 from pathlib import Path
 from pprint import pprint
 import numpy as np
@@ -227,7 +229,7 @@ class AutoInspection:
         for k, v in self.frame_dict.items() if self.frame_dict else ():
             if v.get('highest_score_name') in ['', 'OK']:
                 continue
-            text = f"{k} {v['highest_score_name']} {v['highest_score_percent']}"
+            text = f"{k} {v['highest_score_name']}"
             formatted_text += f"<font color='#FF0000' size={size_font}>{text}</font><br>"
         self.res_NG_text_box.set_text(formatted_text)
 
@@ -444,7 +446,9 @@ class AutoInspection:
 
         # bottom left
         anchors = {'top': 'bottom', 'left': 'right', 'bottom': 'bottom', 'right': 'right'}
-        test = f'Auto Inspection 0.2.2' + f" x {self.xfunction}" if self.xfunction else ''
+        init_txt = pathlib.Path(__file__).with_name('__init__.py').read_text(encoding='utf-8')
+        version = re.search(r"__version__\s*=\s*['\"]([^'\"]+)['\"]", init_txt).group(1)
+        test = f'Auto Inspection {version}' + (f" x {self.xfunction}" if self.xfunction else '')
         w = (150 / 22 * len(test)) + 10
         self.autoinspection_button = UIButton(
             Rect(-w, -30, w, 30) if is_full_hd else Rect(-w, -20, w, 20),
@@ -799,6 +803,7 @@ class AutoInspection:
                 self.predict()
             if event == 'Capture&Predict':
                 capture_button()
+                adj_button()
                 self.predict()
 
         for event in events:
@@ -825,6 +830,7 @@ class AutoInspection:
                     self.predict()
                 if event.ui_element == self.capture_predict_button:
                     capture_button()
+                    adj_button()
                     self.predict()
             if event.type == UI_FILE_DIALOG_PATH_PICKED:
                 # from Load Image
