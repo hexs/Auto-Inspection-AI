@@ -20,6 +20,39 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 
+@app.route('/api/get_model', methods=['GET'])
+def api_get_model():
+    data = app.config['data']
+    return jsonify({
+        "model_names": data.get("model_names", []),
+        "model_name": data.get("model_name")
+    })
+
+
+@app.route('/api/change_model', methods=['GET'])
+def api_change_model():
+    data = app.config['data']
+    model_name = request.args.get('model_name', type=str)
+    if not model_name:
+        return jsonify({"status": "error", "message": "missing model_name"}), 400
+
+    allowed = set(data.get("model_names", []))
+    if model_name not in allowed:
+        return jsonify({"status": "error", "message": f"invalid model_name: {model_name}"}), 400
+
+    data['model_name'] = model_name
+    data['events'].append('change_model')
+
+    print("Change model", model_name)
+
+    return jsonify({"status": "ok", "model_name": model_name}), 200
+
+
+@app.route('/change_model', methods=['GET'])
+def change_model():
+    return render_template('change_model.html')
+
+
 @app.route('/status_robot', methods=['GET'])
 def status_robot():
     data = app.config['data']

@@ -805,6 +805,8 @@ class AutoInspection:
                 capture_button()
                 adj_button()
                 self.predict()
+            if event == 'change_model':
+                self.change_model()
 
         for event in events:
             if event.type == UI_BUTTON_PRESSED:
