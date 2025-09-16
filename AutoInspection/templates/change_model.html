@@ -13,13 +13,11 @@
 
         .model-list {
           padding: 2rem 0;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
+          --bs-gutter-x: 10px;
+          --bs-gutter-y: 10px;
         }
 
         .model {
-          flex: 1 1 calc(33.333% - 10px); /* 3 คอลัมน์ ลบช่องว่าง */
           background: #fff;
           border-radius: 16px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.06);
@@ -130,17 +128,19 @@
           const current = data.model_name || null;
 
           names.forEach(name => {
-            const div = document.createElement('div');
-            div.className = 'model col-12 col-sm-6 col-md-4';
-            div.dataset.name = name;
-            div.textContent = name;
+            const col = document.createElement('div');
+            col.className = 'col-12 col-sm-6 col-md-4';
+            const card = document.createElement('div');
+            card.className = 'model';
+            card.dataset.name = name;
+            card.textContent = name;
 
             // Click to change model
-            div.addEventListener('click', async () => {
+            card.addEventListener('click', async () => {
               const url = '/api/change_model?model_name=' + encodeURIComponent(name);
               try {
-                // Prevent repeated pressing
-                div.style.pointerEvents = 'none';
+                // prevent double click
+                card.style.pointerEvents = 'none';
                 const res = await fetch(url, { method: 'GET' });
                 const out = await res.json();
                 if (!res.ok || out.status !== 'ok') {
@@ -153,11 +153,12 @@
                 console.error(e);
                 alert('Network error');
               } finally {
-                div.style.pointerEvents = '';
+                card.style.pointerEvents = '';
               }
             });
 
-            modelListEl.appendChild(div);
+            col.appendChild(card);
+            modelListEl.appendChild(col);
           });
 
           if (current) markActiveModel(current);

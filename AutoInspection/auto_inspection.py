@@ -9,7 +9,7 @@ import numpy as np
 import cv2
 import pygame as pg
 from hexss.box import Box
-from hexss.image.func import pygame_surface_to_numpy
+from hexss.image.pygame import pygame_surface_to_numpy
 from pygame import Rect, Surface, mouse, MOUSEBUTTONDOWN
 import pygame_gui
 from pygame_gui import UIManager, UI_FILE_DIALOG_PATH_PICKED, UI_BUTTON_PRESSED, UI_DROP_DOWN_MENU_CHANGED, \
