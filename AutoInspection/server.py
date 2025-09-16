@@ -1,9 +1,12 @@
 import os
 import logging
 import time
-from hexss import check_packages
+from pathlib import Path
 
-check_packages(
+import hexss
+from hexss.download import download
+
+hexss.check_packages(
     'numpy', 'opencv-python', 'Flask', 'requests', 'pygame-gui',
     'tensorflow', 'keras', 'pyzbar',
     auto_install=True, verbose=False
@@ -98,6 +101,13 @@ def data():
     filtered_data = filter_dict(data)
 
     return jsonify(filtered_data), 200
+
+
+def download_static_files():
+    download(
+        'https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css',
+        dest_dir=Path(__file__).parent / 'static'
+    )
 
 
 def run_server(data):
