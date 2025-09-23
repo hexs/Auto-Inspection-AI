@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+        #drop-zone {
+          border: 5px solid blue;
+          width: 200px;
+          height: 100px;
+        }
+        div {
+          margin: 0em;
+          padding: 2em;
+        }
+        #preview-img {
+          display: block;
+          max-width: 200px;
+          max-height: 200px;
+          margin-top: 1em;
+        }
+    </style>
+</head>
+<body>
+<div id="drop-zone">
+    <p>Drag <strong>one image file</strong> to this <i>drop zone</i>.</p>
+</div>
+<pre id="output"></pre>
+<img id="preview-img" style="display:none;"/>
+
+<script>
+    const dropZone = document.getElementById("drop-zone");
+    const output = document.getElementById("output");
+    const previewImg = document.getElementById("preview-img");
+
+    dropZone.addEventListener("drop", dropHandler);
+    window.addEventListener("dragover", (e) => {
+      e.preventDefault();
+    });
+    window.addEventListener("drop", (e) => {
+      e.preventDefault();
+    });
+
+    function dropHandler(ev) {
+      ev.preventDefault();
+      let result = "";
+      let files = [];
+
+      // Use DataTransferItemList interface to access the file(s)
+      [...ev.dataTransfer.items].forEach((item, i) => {
+        if (item.kind === "file") {
+          const file = item.getAsFile();
+          files.push(file);
+        }
+      });
+
+      if (files.length === 0) {
+        output.textContent = "No files dropped.";
+        previewImg.style.display = "none";
+        return;
+      }
+      if (files.length > 1) {
+        output.textContent = "Please drop only one image file.";
+        previewImg.style.display = "none";
+        return;
+      }
+      const file = files[0];
+      if (!file.type.startsWith("image/")) {
+        output.textContent = "The dropped file is not an image.";
+        previewImg.style.display = "none";
+        return;
+      }
+
+      result += `Image: ${file.name} (${file.type})\n`;
+      output.textContent = result;
+
+      // Show preview
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        previewImg.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+
+      // Send image to Flask backend
+      const formData = new FormData();
+      formData.append('image', file);
+
+      fetch('/api/change_image', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(json => {
+        output.textContent += "\nServer response: " + JSON.stringify(json);
+      })
+      .catch(error => {
+        output.textContent += "\nError sending image: " + error;
+      });
+    }
+</script>
+
+</body>
+</html>

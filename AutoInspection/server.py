@@ -4,7 +4,6 @@ import time
 from pathlib import Path
 
 import hexss
-from hexss.download import download
 
 hexss.check_packages(
     'numpy', 'opencv-python', 'Flask', 'requests', 'pygame-gui',
@@ -14,7 +13,10 @@ hexss.check_packages(
 
 from hexss import json_load, json_update, close_port, get_hostname
 from hexss.network import get_all_ipv4
+from hexss.download import download
 from flask import Flask, render_template, request, jsonify
+import cv2
+import numpy as np
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -49,6 +51,29 @@ def api_change_model():
     print("Change model", model_name)
 
     return jsonify({"status": "ok", "model_name": model_name}), 200
+
+
+@app.route('/api/change_image', methods=['POST'])
+def api_change_image():
+    data = app.config['data']
+    if 'image' not in request.files:
+        return jsonify({"status": "error", "message": "No image provided"}), 400
+
+    file = request.files['image']
+    file_bytes = np.frombuffer(file.read(), np.uint8)
+    img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    if img is None:
+        return jsonify({"status": "error", "message": "Invalid image"}), 400
+
+    data['img'] = img
+    data['events'].append('change_image')
+
+    return jsonify({"status": "ok"}), 200
+
+
+@app.route('/change_image', methods=['GET'])
+def change_image():
+    return render_template('change_image.html')
 
 
 @app.route('/change_model', methods=['GET'])
