@@ -809,6 +809,8 @@ class AutoInspection:
                 self.change_model()
             if event == 'change_image':
                 self.get_surface_form_config_data()
+                self.reset_frame()
+                self.set_name_for_debug()
 
         for event in events:
             if event.type == UI_BUTTON_PRESSED:
