@@ -416,6 +416,14 @@ class AutoInspection:
             object_id=ObjectID(class_id='@minimize_button', object_id='#minimize_button'),
             anchors=anchors | {'right_target': self.close_button}
         )
+        if self.data['config'].get('fake_version'):
+            UILabel(
+                Rect(-100, 0, 100, 40),
+                f'{self.data["config"].get("fake_version")}',
+                self.manager,
+                object_id=ObjectID(class_id='@model_label', object_id='#model_label'),
+                anchors=anchors | {'right_target': self.minimize_button}
+            )
 
         # bottom left
         anchors = {'top': 'bottom', 'left': 'left', 'bottom': 'bottom', 'right': 'left'}

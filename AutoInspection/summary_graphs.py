@@ -97,7 +97,13 @@ def plot_data(plot_data, img_names,output_plot_file):
     plt.xlabel("Data")
     plt.ylabel("% OK")
     plt.ylim(0, 100)
-    plt.legend(loc="upper right", fontsize=8)
+    plt.legend(
+        # loc="upper right",
+        # loc="center right",
+        loc="lower right",
+        ncol=len(plot_data) // 20,
+        fontsize=8
+    )
     plt.xticks(rotation=90)
     plt.tight_layout()
 
