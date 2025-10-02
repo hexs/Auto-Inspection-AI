@@ -263,6 +263,10 @@ class AutoInspection:
             if mark_template_path.exists():
                 self.mark_template_im = Image(mark_template_path)
 
+                self.np_img = self.mark_template_im.numpy()
+                self.reset_frame()
+                self.set_name_for_debug()
+
             for name, frame in self.mark_dict.items() if self.mark_dict else ():
                 frame['color_rect'] = (200, 20, 100)
                 frame['width_rect'] = 1
@@ -775,7 +779,7 @@ class AutoInspection:
 
             im2 = Image(self.np_img.copy())
 
-            for mark in self.mark_dict.values():
+            for mark in (self.mark_dict or {}).values():
                 box = Box(xywhn=mark['xywh'])
                 box.set_size(self.mark_template_im.size)
                 mark['im'] = self.mark_template_im.crop(box)
@@ -784,7 +788,7 @@ class AutoInspection:
 
             pts_src = []
             pts_dst = []
-            for mark in self.mark_dict.values():
+            for mark in (self.mark_dict or {}).values():
                 xywhn_mark_area = mark['scale_xywhn']
                 mark_im = mark['im']
                 xy, score = im2.best_match_location(mark_im, xywhn=xywhn_mark_area)
