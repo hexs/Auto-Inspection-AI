@@ -66,6 +66,7 @@ def api_change_image():
         return jsonify({"status": "error", "message": "Invalid image"}), 400
 
     data['img'] = img
+    data['img_form_api'] = img
     data['events'].append('change_image')
 
     return jsonify({"status": "ok"}), 200

@@ -116,7 +116,7 @@ class AutoInspection:
 
     def get_surface_form_config_data(self):
         if self.data.get('img') is not None:
-            self.np_img = self.data.get('img')
+            self.np_img = self.data.get('img_form_api')
             self.get_surface_form_np(self.np_img)
 
     def show_rects_to_surface(self, frame_dict, type='frame'):
@@ -351,6 +351,7 @@ class AutoInspection:
                 frame['highest_score_name'] = highest_score_name
                 frame['highest_score_percent'] = highest_score_percent
                 frame['class_names_percent'] = dict(zip(model_class_names, percent_score_list))
+                frame['class_names_prediction'] = dict(zip(model_class_names, predictions_score_list.tolist()))
 
                 if highest_score_name == 'OK':
                     frame['color_rect'] = (0, 255, 0)
@@ -940,7 +941,8 @@ class AutoInspection:
 
                     result = {}
                     for name, frame in self.frame_dict.items() if self.frame_dict else ():
-                        result[name] = frame['class_names_percent']
+                        # result[name] = frame['class_names_percent']
+                        result[name] = frame['class_names_prediction']
                     print(result)
 
                     with open(join(result_path, f'result.txt'), 'a') as f:
