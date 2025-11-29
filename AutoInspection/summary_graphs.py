@@ -2,11 +2,13 @@ import csv
 import json
 import os
 import math
+from pathlib import Path
 from typing import Dict, List, Tuple
 from itertools import cycle
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 
 def softmax_dict(scores: Dict[str, float], temperature: float = 1.0, base: float = math.e) -> Dict[str, float]:
@@ -52,12 +54,26 @@ def process_data(frames_data: dict, results: List[str]) -> Tuple[List[str], List
     img_names: List[str] = []
     seen_frames = set()
 
+    # ignore_img_name = []
+    # with open(r"C:\PythonProjects\auto_inspection_data__QM7-3473\img_result\mark_low_score.txt") as f:
+    #     for l in f.readlines():
+    #         ignore_img_name.append(l.strip().split('--')[0])
+
+    # path = Path(r"C:\PythonProjects\auto_inspection_data__QM7-3473\img_result")
+    # jpg_list = [p.stem for p in path.glob("*.jpg")]
+    # print(jpg_list)
+    # print(ignore_img_name)
     for raw in results:
         line = raw.strip()
         if not line:
             continue
         try:
             img_name, json_blob = line.split("--", 1)
+
+            # if img_name in ignore_img_name:
+            #     continue
+            # if img_name not in jpg_list:
+            #     continue
             img_names.append(img_name)
             row = {"img_name": img_name}
 
@@ -202,21 +218,38 @@ def load_or_build_color_map(keys: List[str], map_path: str) -> dict:
 
 
 def plot_ok_series(series_dict: dict, img_names: List[str], output_plot_file: str, color_map_file: str) -> None:
-    plt.figure(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(18, 8))
 
     keys = list(sorted(series_dict.keys()))
     N = len(keys)
     color_map = load_or_build_color_map(keys, color_map_file)
+    x_all = np.arange(len(img_names))
+
+    def x_index_to_label(x, pos):
+        i = int(round(x))
+        if 0 <= i < len(img_names):
+            return img_names[i]
+        return ""
+
+    ax.xaxis.set_major_formatter(FuncFormatter(x_index_to_label))
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=120, integer=True, min_n_ticks=2))
 
     marker_cycle = cycle(["o", "s"])
+
     for k in keys:
         values = series_dict[k]
         if not values:
             continue
+        n = min(len(values), len(x_all))
+        if n == 0:
+            continue
+        x = x_all[:n]
+        y = values[:n]
+
         marker = next(marker_cycle)
         try:
-            plt.scatter(
-                img_names, values,
+            ax.scatter(
+                x, y,
                 label=k,
                 color=color_map[k],
                 marker=marker,
@@ -226,21 +259,15 @@ def plot_ok_series(series_dict: dict, img_names: List[str], output_plot_file: st
             )
         except Exception as e:
             print(f"[Warn] plot {k}: {e}")
-    plt.axhline(y=0.5, color=(1.0, 0.0, 0.0, 1.0), linestyle="--", zorder=1)
 
-    plt.title("Status Over Time")
-    plt.xlabel("Data")
-    plt.ylabel("OK value")
-    plt.ylim(0, 1)
+    ax.axhline(y=0.5, color=(1.0, 0.0, 0.0, 1.0), linestyle="--", zorder=1)
 
-    max_xticks = 120
-    if len(img_names) > max_xticks:
-        step = int(np.ceil(len(img_names) / max_xticks))
-        plt.xticks(range(0, len(img_names), step), [img_names[i] for i in range(0, len(img_names), step)], rotation=90)
-    else:
-        plt.xticks(rotation=90)
-
-    plt.legend(
+    ax.set_title("Status Over Time")
+    ax.set_xlabel("Data")
+    ax.set_ylabel("OK value")
+    ax.set_ylim(0, 1)
+    plt.setp(ax.get_xticklabels(), rotation=90)
+    ax.legend(
         bbox_to_anchor=(1.02, 1),
         loc="upper left",
         ncol=max(1, int(np.ceil(N / 25))),

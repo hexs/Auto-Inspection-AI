@@ -33,6 +33,7 @@ if __name__ == '__main__':
         'model_names': ["QC7-7990-000-Example", ],
         'fullscreen': True,
         'image_url': 'http://127.0.0.1:2002/image?source=video_capture&id=0',
+        'is_set_amount': False
     }, True)
 
     close_port(config['ipv4'], config['port'], verbose=False)
@@ -56,10 +57,10 @@ if __name__ == '__main__':
                 'batch_size': 32,
                 'img_height': 180,
                 'img_width': 180,
-                'epochs': 5,
-                'shift_values': [-4, -2, 0, 2, 4],
-                'brightness_values': [-24, -12, 0, 12, 24],
-                'contrast_values': [-12, -6, 0, 6, 12],
+                'epochs': 15,
+                'shift_values': [-4, 0, 4],
+                'brightness_values': [-12, 0, 12],
+                'contrast_values': [-6, 0, 6],
                 'max_file': 20000,
             }
         )

@@ -3,8 +3,8 @@ import numpy as np
 import pygame
 import pygame_gui
 from pygame_gui import UIManager
-from pygame_gui.core import IContainerLikeInterface
-from pygame_gui.elements import UITextBox, UIImage
+from pygame_gui.core.interfaces import IUIManagerInterface
+from pygame_gui.elements import UITextBox, UIImage, UIWindow, UILabel, UIButton
 
 # Constants
 DEFAULT_FONT = 'Arial'
@@ -132,7 +132,81 @@ class TextBoxSurface:
         self.text_box.set_text(html_text)
 
 
-def main():
+class NumpadWindow(UIWindow):
+    def __init__(
+            self,
+            xy=(200, 50),
+            manager: IUIManagerInterface | None = None,
+            window_display_title: str = "Numpad",
+
+    ):
+        super().__init__(
+            rect=pygame.Rect(xy, (340, 420)),
+            manager=manager,
+            window_display_title=window_display_title
+        )
+
+        self.current_input = ""
+        self.val = 0
+
+        self.display_label = UILabel(
+            relative_rect=pygame.Rect((20, 20), (300, 60)),
+            text=self.current_input,
+            manager=manager,
+            container=self,
+            object_id="#numpad_label"
+        )
+
+        mg_x, mg_y = 20, 90
+        btn_w, btn_h = 100, 70
+
+        self.button_layout = [
+            ['1', '2', '3'],
+            ['4', '5', '6'],
+            ['7', '8', '9'],
+            ['<', '0', 'OK']
+        ]
+
+        self.buttons = {}
+
+        for row_index, row_keys in enumerate(self.button_layout):
+            for col_index, key in enumerate(row_keys):
+                pos_x = mg_x + (col_index * btn_w)
+                pos_y = mg_y + (row_index * btn_h)
+                btn = UIButton(
+                    relative_rect=pygame.Rect((pos_x, pos_y), (btn_w, btn_h)),
+                    text=key,
+                    manager=manager,
+                    container=self,
+                    object_id=f"#numpad_button_{key}"
+                )
+                self.buttons[btn] = key
+
+    def process_event(self, event):
+        handled = super().process_event(event)
+
+        if event.type == pygame_gui.UI_BUTTON_PRESSED:
+            if event.ui_element in self.buttons:
+                pressed_value = self.buttons[event.ui_element]
+                self.handle_numpad_input(pressed_value)
+                handled = True
+
+        return handled
+
+    def handle_numpad_input(self, value):
+        if value == 'OK':
+            self.kill()
+        elif value == '<':
+            self.current_input = self.current_input[:-1]
+            self.val = int(self.current_input) if self.current_input else 0
+        else:
+            if len(self.current_input) < 12:
+                self.current_input += value
+            self.val = int(self.current_input) if self.current_input else 0
+        self.display_label.set_text(self.current_input)
+
+
+def ex1():
     pygame.init()
     window_size = (800, 600)
     display = pygame.display.set_mode(window_size)
@@ -179,5 +253,44 @@ def main():
     pygame.quit()
 
 
+def ex_numpad_window():
+    pygame.init()
+
+    window_surface = pygame.display.set_mode((800, 600))
+    pygame.display.set_caption("Pygame GUI Numpad Example")
+
+    background = pygame.Surface((800, 600))
+    background.fill(pygame.Color('#707070'))
+
+    manager = pygame_gui.UIManager((800, 600))
+
+    numpad_window = NumpadWindow(manager=manager)
+
+    clock = pygame.time.Clock()
+    is_running = True
+
+    while is_running:
+        time_delta = clock.tick(60) / 1000.0
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                is_running = False
+
+            if (event.type == pygame.KEYDOWN and
+                    event.key == pygame.K_F1 and
+                    not numpad_window.alive()):
+                numpad_window = NumpadWindow(manager=manager)
+
+            manager.process_events(event)
+
+        manager.update(time_delta)
+
+        window_surface.blit(background, (0, 0))
+        manager.draw_ui(window_surface)
+
+        pygame.display.update()
+
+
 if __name__ == '__main__':
-    main()
+    ex1()
+    # ex_numpad_window()

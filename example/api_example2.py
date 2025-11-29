@@ -12,8 +12,16 @@ import hexss.env
 
 hexss.env.unset_proxy()
 IP_ADDRESS = 'http://s-pcs235000:3000/'
-MODEL = urllib.parse.quote('QM7-3473')
-
+# MODEL = 'QD1-1985'
+# MODEL = 'QD1-1998'
+# MODEL = 'QD1-2001'
+# MODEL = 'QD1-2073'
+MODEL = 'QC5-9973' #
+# MODEL = "QC7-7957"
+# MODEL = "QC4-9336" ##
+# MODEL = "FE3-8546"
+# MODEL = "4A3-5526"
+# MODEL = "QC7-2413"
 
 def _process_one(args):
     p, dx, dy, b, c, s = args
@@ -31,11 +39,11 @@ def _process_one(args):
 
 
 def get_image():
-    root = Path(r"C:\PythonProjects\auto_inspection_data__QM7-3473\i")
+    root = Path(rf"C:\PythonProjects\auto_inspection_data__{MODEL}\img_full - Copy")
     files = list(root.glob("*.png"))
-    s_factors = [0.8, 1.0, 1.2]
-    b_factors = [0.8, 1.0, 1.2]
-    c_factors = [0.8, 1.0, 1.2]
+    s_factors = [0.9, 1.0, 1.1]
+    b_factors = [0.9, 1.0, 1.1]
+    c_factors = [0.9, 1.0, 1.1]
 
     # ignore dark
     # s_factors = [0.8, 1.0, 1.2]
@@ -64,19 +72,16 @@ def get_image():
                 out_path = fut.result()
                 done += 1
                 if done % 10 == 0 or done == total:
-                    print(f"[{done}/{total}] wrote: {out_path}")
+                    print(end=f"\r[{done}/{total}] write: {out_path}")
             except Exception as e:
                 errors += 1
-                print("ERROR:", e)
+                print(end=f"\rERROR: {e}\n")
 
     print(f"Finished: {done} succeeded, {errors} failed.")
 
 
 def f(root):
     files = list(root.glob("*.png"))
-    print(files)
-    files.sort()
-    print(files)
     for i, p in enumerate(random.sample(files, k=min(30, len(files)))):
         print(i, p)
         while True:
@@ -110,6 +115,6 @@ if __name__ == '__main__':
     print(r.status_code, r.text)
     time.sleep(5)
 
-    f(Path(r"C:\PythonProjects\auto_inspection_data__QM7-3473\i\ng"))
-    f(Path(r"C:\PythonProjects\auto_inspection_data__QM7-3473\i\ok"))
+    f(Path(fr"C:\PythonProjects\auto_inspection_data__{MODEL}\img_full - Copy\o\ng"))
+    f(Path(fr"C:\PythonProjects\auto_inspection_data__{MODEL}\img_full - Copy\o\ok"))
 

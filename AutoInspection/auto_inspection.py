@@ -22,7 +22,7 @@ from hexss.constants.terminal_color import *
 from hexss import json_load, json_update
 from hexss.image import get_image, crop_img, Image
 from .theme import theme
-from .textbox_surface import TextBoxSurface, gradient_surface
+from .textbox_surface import TextBoxSurface, gradient_surface, NumpadWindow
 from .pygame_function import putText, UITextBox
 from os.path import join
 from .summary_graphs import summary
@@ -118,6 +118,7 @@ class AutoInspection:
         if self.data.get('img') is not None:
             self.np_img = self.data.get('img_form_api')
             self.get_surface_form_np(self.np_img)
+            self.auto_cap_button.set_text('Auto')
 
     def show_rects_to_surface(self, frame_dict, type='frame'):
         if self.is_show_rects:
@@ -325,7 +326,7 @@ class AutoInspection:
 
         res_surface_text = 'OK'
         wh_ = np.array(self.np_img.shape[1::-1])
-        print(self.model_dict)
+        # print(self.model_dict)
         for name, frame in self.frame_dict.items() if self.frame_dict else ():
             if self.model_dict[frame['model_used']].get('model'):  # มีไฟล์ model.h5
                 model = self.model_dict[frame['model_used']]['model']
@@ -652,6 +653,7 @@ class AutoInspection:
 
     def panel2_setup(self):
         is_full_hd = self.resolution == '1920x1080'
+        is_set_amount = self.config.get('is_set_amount')
         self.panel2_up_rect = Rect(1347, 40, 573, 90) if is_full_hd else Rect(600, 30, 200, 72)
         self.panel2_up = UIPanel(self.panel2_up_rect, manager=self.manager)
 
@@ -706,68 +708,88 @@ class AutoInspection:
             'res', text='-', color=(0, 0, 0),
             font_name='Arial', font_size=130 if is_full_hd else 50
         )
+        rect = Rect((self.panel2_rect.w - 550) / 2, 170, 550, 180) if is_full_hd \
+            else Rect((self.panel2_rect.w - 190) / 2, 84, 190, 90)
+        if is_set_amount:
+            rect.h += 40 if is_full_hd else 20
+        self.passrate_textbox = TextBoxSurface(rect, container=self.panel2)
+        xy_a = [50, 10] if is_full_hd else [10, 5]
+        xy_b = [300, 10] if is_full_hd else [100, 5]
+        font_size = 40 if is_full_hd else 20
 
-        self.passrate_textbox = TextBoxSurface(
-            Rect((self.panel2_rect.w - 550) / 2, 170, 550, 180) if is_full_hd \
-                else Rect((self.panel2_rect.w - 190) / 2, 84, 190, 90),
-            container=self.panel2
-        )
+        if is_set_amount:
+            self.passrate_textbox.add_text(
+                'Set amount_', 'Set amount',
+                tuple(xy_a),
+                (0, 0, 200),
+                font_name='Arial', font_size=font_size, anchor='topleft'
+            )
+            self.passrate_textbox.add_text(
+                'Set amount', text=': 0',
+                xy=tuple(xy_b),
+                color=(0, 0, 200),
+                font_name='Arial', font_size=font_size, anchor='topleft'
+            )
+            xy_a[1] += 50 if is_full_hd else 25
+            xy_b[1] += 50 if is_full_hd else 25
 
         self.passrate_textbox.add_text(
-            'Pass_', 'Pass',
-            (50, 10) if is_full_hd else (10, 5),
-            (0, 200, 0),
-            font_name='Arial', font_size=40 if is_full_hd else 20,
-            anchor='topleft'
+            'Pass_', text='Pass',
+            xy=tuple(xy_a), color=(0, 200, 0),
+            font_name='Arial', font_size=font_size, anchor='topleft'
         )
         self.passrate_textbox.add_text(
             'Pass', text=': 0',
-            xy=(300, 10) if is_full_hd else (100, 5),
-            color=(0, 200, 0),
-            font_name='Arial', font_size=40 if is_full_hd else 20,
-            anchor='topleft'
+            xy=tuple(xy_b), color=(0, 200, 0),
+            font_name='Arial', font_size=font_size, anchor='topleft'
         )
+        xy_a[1] += 50 if is_full_hd else 25
+        xy_b[1] += 50 if is_full_hd else 25
+
         self.passrate_textbox.add_text(
             'Fail_', text='Fail',
-            xy=(50, 60) if self.resolution == '1920x1080' else (10, 30),
-            color=(255, 0, 0),
-            font_name='Arial', font_size=40 if is_full_hd else 20,
-            anchor='topleft'
+            xy=tuple(xy_a), color=(255, 0, 0),
+            font_name='Arial', font_size=font_size, anchor='topleft'
         )
         self.passrate_textbox.add_text(
             'Fail', text=': 0',
-            xy=(300, 60) if is_full_hd else (100, 30),
-            color=(255, 0, 0),
-            font_name='Arial', font_size=40 if is_full_hd else 20,
-            anchor='topleft'
+            xy=tuple(xy_b), color=(255, 0, 0),
+            font_name='Arial', font_size=font_size, anchor='topleft'
         )
+        xy_a[1] += 50 if is_full_hd else 25
+        xy_b[1] += 50 if is_full_hd else 25
+
         self.passrate_textbox.add_text(
             'Pass rate_', text='Pass rate',
-            xy=(50, 110) if is_full_hd else (10, 55),
-            color=(0, 0, 0),
-            font_name='Arial', font_size=40 if is_full_hd else 20,
-            anchor='topleft'
+            xy=tuple(xy_a), color=(0, 0, 0),
+            font_name='Arial', font_size=font_size, anchor='topleft'
         )
         self.passrate_textbox.add_text(
             'Pass rate', text=': -%',
-            xy=(300, 110) if is_full_hd else (100, 55),
-            color=(0, 0, 0),
-            font_name='Arial', font_size=40 if is_full_hd else 20,
-            anchor='topleft'
+            xy=tuple(xy_b), color=(0, 0, 0),
+            font_name='Arial', font_size=font_size, anchor='topleft'
         )
+
+        self.numpad_window = None
 
         # Create a UITextBox inside the panel
-        self.res_NG_text_box = UITextBox(
-            html_text="",
-            relative_rect=Rect(((self.panel2_rect.w - 550) / 2, 357), (550, 555)) if is_full_hd \
-                else Rect((self.panel2_rect.w - 190) / 2, 173, 190, 186),
-            container=self.panel2
-        )
+        rect = Rect(((self.panel2_rect.w - 550) / 2, 357), (550, 555)) if is_full_hd \
+            else Rect((self.panel2_rect.w - 190) / 2, 173, 190, 186)
+        if is_set_amount:
+            rect.y += 40 if is_full_hd else 20
+            rect.h -= 40 if is_full_hd else 20
+        self.res_NG_text_box = UITextBox(html_text="", relative_rect=rect, container=self.panel2)
 
     def panel2_update(self, events):
-
         def capture_button():
-            self.get_surface_form_config_data()
+            if self.data.get('img_form_api') is not None:
+                self.get_surface_form_config_data()
+            else:
+                if self.data['config'].get('image_url'):
+                    image_url = self.data['config'].get('image_url')
+                    im = Image(image_url)
+                    self.np_img = im.numpy()
+                    self.get_surface_form_np(self.np_img)
             self.reset_frame()
             self.set_name_for_debug()
 
@@ -789,12 +811,18 @@ class AutoInspection:
 
             pts_src = []
             pts_dst = []
+            mark_score = []
             for mark in (self.mark_dict or {}).values():
                 xywhn_mark_area = mark['scale_xywhn']
                 mark_im = mark['im']
                 xy, score = im2.best_match_location(mark_im, xywhn=xywhn_mark_area)
+                mark_score.append(score)
                 pts_dst.append(Box(size=im2.size, xywhn=mark['xywh']).xy)
                 pts_src.append(xy)
+            if min(mark_score) < 0.8:
+                result_path = join(self.model_name_dir(), 'img_result')
+                with open(join(result_path, f'mark_low_score.txt'), 'a') as f:
+                    f.write(f'{self.file_name}--{mark_score}\n')
 
             im2.align_image(pts_src, pts_dst)
             arr = pil_to_numpy_strict(im2.image)
@@ -866,6 +894,7 @@ class AutoInspection:
                         self.np_img = cv2.imread(event.text)
                         self.reset_frame()
                         self.set_name_for_debug(os.path.split(event.text)[1].replace('.png', ''))
+                        self.auto_cap_button.set_text('Auto')
 
             # auto show image
             # if event.type == UI_SELECTION_LIST_NEW_SELECTION and event.ui_object_id == '#file_dialog.#file_display_list':
@@ -876,7 +905,7 @@ class AutoInspection:
             #         self.set_name_for_debug()
 
         if self.auto_cap_button.text == 'Stop':
-            self.get_surface_form_config_data()
+            capture_button()
 
     def setup_ui(self, ):
         self.panel0_setup()
@@ -884,6 +913,7 @@ class AutoInspection:
         self.panel2_setup()
 
     def handle_events(self):
+        is_set_amount = self.config.get('is_set_amount')
         events = pg.event.get()
         self.panel0_update(events)
         self.panel1_update(events)
@@ -892,10 +922,35 @@ class AutoInspection:
             self.manager.process_events(event)
             # if event.type != 1024:
             #     print(event)
+            if is_set_amount and event.type == pg.MOUSEBUTTONUP and event.button == 1:
+                x = self.panel2.rect.x + self.passrate_textbox.rect.x
+                y = self.panel2.rect.y + self.passrate_textbox.rect.y
+                w = self.passrate_textbox.rect.w
+                h = self.passrate_textbox.rect.h
+                if pg.Rect((x, y, w, h)).collidepoint(event.pos):
+                    if self.numpad_window:
+                        self.numpad_window.kill()
+                    self.numpad_window = NumpadWindow(
+                        (
+                            self.panel2_rect.x - 340,
+                            self.panel2_rect.y if self.resolution == '1920x1080' else self.panel2_up_rect.y
+                        ),
+                        self.manager
+                    )
+            if is_set_amount and event.type == 32867:
+                if event.ui_object_id == 'window.#numpad_button_OK':
+                    self.passrate_textbox.update_text('Set amount', text=f': {self.numpad_window.val}')
+
             if event.type == pygame_gui.UI_BUTTON_ON_HOVERED:
                 self.manager.set_active_cursor(pg.SYSTEM_CURSOR_HAND)
             if event.type == pygame_gui.UI_BUTTON_ON_UNHOVERED:
                 self.manager.set_active_cursor(pg.SYSTEM_CURSOR_ARROW)
+
+            if event.type == pg.DROPFILE:
+                self.np_img = cv2.imread(event.file)
+                self.reset_frame()
+                self.set_name_for_debug()
+                self.auto_cap_button.set_text('Auto')
 
             if event.type == 768:
                 if event.dict.get('unicode') and event.unicode in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-<>':
@@ -943,7 +998,7 @@ class AutoInspection:
                     for name, frame in self.frame_dict.items() if self.frame_dict else ():
                         # result[name] = frame['class_names_percent']
                         result[name] = frame['class_names_prediction']
-                    print(result)
+                    # print(result)
 
                     with open(join(result_path, f'result.txt'), 'a') as f:
                         f.write(f'{self.file_name}--{json.dumps(result)}\n')
