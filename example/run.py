@@ -33,7 +33,7 @@ if __name__ == '__main__':
         'model_names': ["QC7-7990-000-Example", ],
         'fullscreen': True,
         'image_url': 'http://127.0.0.1:2002/image?source=video_capture&id=0',
-        'is_set_amount': False
+        'is_set_qty': False
     }, True)
 
     close_port(config['ipv4'], config['port'], verbose=False)
@@ -74,6 +74,7 @@ if __name__ == '__main__':
         'model_names': config['model_names'],
         'events': [],
         'play': True,
+        'status': {}
     }
     m.add_func(camera_server.run, join=False)
     m.add_func(main, args=(data,))

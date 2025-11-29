@@ -180,7 +180,9 @@ class AutoInspection:
         self.config = data['config']
         self.xfunction = self.config.get('xfunction')
         self.resolution = self.config.get('resolution')
-        if self.resolution == '1920x1080':
+        self.is_full_hd = self.resolution == '1920x1080'
+        self.is_set_qty = self.config.get('is_set_qty')
+        if self.is_full_hd:
             self.window_size = np.array([1920, 1080])
         else:
             self.window_size = np.array([800, 480])
@@ -221,11 +223,11 @@ class AutoInspection:
             if not frame.get('frame_name'):
                 frame['frame_name'] = name
         self.res_textbox.update_text('res', text='-', color=(0, 0, 0))
-        self.config['res'] = '-'
+        self.data['status']['res'] = '-'
         self.setup_NG_details()
 
     def setup_NG_details(self):
-        size_font = 25 if self.resolution == '1920x1080' else 13
+        size_font = 25 if self.is_full_hd else 13
         formatted_text = ""
         for k, v in self.frame_dict.items() if self.frame_dict else ():
             if v.get('highest_score_name') in ['', 'OK']:
@@ -238,8 +240,12 @@ class AutoInspection:
         self.setup_NG_details()
         self.passrate_textbox.update_text('Pass', text=f': {self.pass_n}')
         self.passrate_textbox.update_text('Fail', text=f': {self.fail_n}')
-        self.passrate_textbox.update_text('Pass rate', text=
-        f': {self.pass_n / (self.pass_n + self.fail_n) * 100:.2f}%' if self.pass_n or self.fail_n else ': -%')
+        pass_rate = self.pass_n / (self.pass_n + self.fail_n) * 100 if self.pass_n or self.fail_n else 0
+        self.passrate_textbox.update_text('Pass rate', text=f': {pass_rate:.2f}%')
+
+        self.data['status']['pass_n'] = self.pass_n
+        self.data['status']['fail_n'] = self.fail_n
+        self.data['status']['pass_rate'] = pass_rate
 
     def change_model(self):
         self.adj_button.disable()
@@ -311,7 +317,7 @@ class AutoInspection:
             self.predict_button.enable() if self.model_dict else self.predict_button.disable()
 
         self.res_textbox.update_text('res', text='-')
-        self.config['res'] = '-'
+        self.data['status']['res'] = '-'
         self.setup_NG_details()
 
         if self.model_data_dropdown:
@@ -320,7 +326,7 @@ class AutoInspection:
 
     def predict(self):
         self.res_textbox.update_text('res', text='Wait', color=(255, 255, 0))
-        self.config['res'] = 'Wait'
+        self.data['status']['res'] = 'Wait'
         self.manager.draw_ui(self.display)
         pg.display.update()
 
@@ -365,44 +371,42 @@ class AutoInspection:
         if res_surface_text == 'OK':
             self.pass_n += 1
             self.res_textbox.update_text('res', text='OK', color=(0, 255, 0))
-            self.config['res'] = 'OK'
+            self.data['status']['res'] = 'OK'
         else:
             self.fail_n += 1
             self.res_textbox.update_text('res', text='NG', color=(255, 0, 0))
-            self.config['res'] = 'NG'
+            self.data['status']['res'] = 'NG'
         self.update_status()
         self.save_result = 1
 
     def create_model_data_dropdown(self, start_option='-'):
-        is_full_hd = self.resolution == '1920x1080'
         model_data = self.data['model_names'] + ['-']
-        rect = Rect(10, 5, 300, 30) if is_full_hd else Rect(10, 0, 200, 30)
+        rect = Rect(10, 5, 300, 30) if self.is_full_hd else Rect(10, 0, 200, 30)
         self.model_data_dropdown = UIDropDownMenu(
             model_data, start_option, rect, self.manager,
             anchors={'left_target': self.model_label}
         )
 
     def panel0_setup(self):
-        is_full_hd = self.resolution == '1920x1080'
         # top left
-        rect = Rect(5, 5, 52, 30) if is_full_hd else Rect(10, 0, 52, 30)
+        rect = Rect(5, 5, 52, 30) if self.is_full_hd else Rect(10, 0, 52, 30)
         self.model_label = UILabel(
             rect, f'Model:', self.manager,
             object_id=ObjectID(class_id='@model_label', object_id='#model_label')
         )
         self.create_model_data_dropdown()
         self.open_image_button = UIButton(
-            Rect(10, 5, 70, 30) if is_full_hd else Rect(10, 0, 60, 30),
+            Rect(10, 5, 70, 30) if self.is_full_hd else Rect(10, 0, 60, 30),
             'Open...', self.manager,
             anchors={'left_target': self.model_data_dropdown}
         )
         self.save_image_button = UIButton(
-            Rect(10, 5, 70, 30) if is_full_hd else Rect(10, 0, 60, 30),
+            Rect(10, 5, 70, 30) if self.is_full_hd else Rect(10, 0, 60, 30),
             'Save...', self.manager,
             anchors={'left_target': self.open_image_button}
         )
         self.summary_button = UIButton(
-            Rect(10, 5, 70, 30) if is_full_hd else Rect(10, 0, 60, 30),
+            Rect(10, 5, 70, 30) if self.is_full_hd else Rect(10, 0, 60, 30),
             'Summary', self.manager,
             anchors={'left_target': self.save_image_button}
         )
@@ -411,7 +415,7 @@ class AutoInspection:
 
         # top right
         anchors = {'top': 'top', 'left': 'right', 'bottom': 'top', 'right': 'right'}
-        rect = Rect(-50, 0, 50, 40) if is_full_hd else Rect(-40, 0, 40, 30)
+        rect = Rect(-50, 0, 50, 40) if self.is_full_hd else Rect(-40, 0, 40, 30)
         self.close_button = UIButton(
             rect, f'X', self.manager,
             object_id=ObjectID(class_id='@close_button', object_id='#close_button'),
@@ -434,25 +438,25 @@ class AutoInspection:
         # bottom left
         anchors = {'top': 'bottom', 'left': 'left', 'bottom': 'bottom', 'right': 'left'}
         self.fps_button = UIButton(
-            Rect(0, -30, 80, 30) if is_full_hd else Rect(0, -20, 80, 20),
+            Rect(0, -30, 80, 30) if self.is_full_hd else Rect(0, -20, 80, 20),
             '', self.manager,
             object_id=ObjectID(class_id='@fps_button', object_id='#buttom_bar'),
             anchors=anchors
         )
         self.mouse_pos_button = UIButton(
-            Rect(0, -30, 110, 30) if is_full_hd else Rect(0, -20, 110, 20),
+            Rect(0, -30, 110, 30) if self.is_full_hd else Rect(0, -20, 110, 20),
             '', self.manager,
             object_id=ObjectID(class_id='@mouse_pos_button', object_id='#buttom_bar'),
             anchors=anchors | {'left_target': self.fps_button}
         )
         self.scale_and_offset_button = UIButton(
-            Rect(0, -30, 120, 30) if is_full_hd else Rect(0, -20, 120, 20),
+            Rect(0, -30, 120, 30) if self.is_full_hd else Rect(0, -20, 120, 20),
             '', self.manager,
             object_id=ObjectID(class_id='@scale_and_offset_button', object_id='#buttom_bar'),
             anchors=anchors | {'left_target': self.mouse_pos_button}
         )
         self.file_name_button = UIButton(
-            Rect(0, -30, 130, 30) if is_full_hd else Rect(0, -20, 130, 20),
+            Rect(0, -30, 130, 30) if self.is_full_hd else Rect(0, -20, 130, 20),
             '', self.manager,
             object_id=ObjectID(class_id='@file_name_button', object_id='#buttom_bar'),
             anchors=anchors | {'left_target': self.scale_and_offset_button}
@@ -465,15 +469,14 @@ class AutoInspection:
         test = f'Auto Inspection {version}' + (f" x {self.xfunction}" if self.xfunction else '')
         w = (150 / 22 * len(test)) + 10
         self.autoinspection_button = UIButton(
-            Rect(-w, -30, w, 30) if is_full_hd else Rect(-w, -20, w, 20),
+            Rect(-w, -30, w, 30) if self.is_full_hd else Rect(-w, -20, w, 20),
             test, self.manager,
             object_id=ObjectID(class_id='@auto_inspection_button', object_id='#buttom_bar'),
             anchors=anchors
         )
 
     def panel0_update(self, events):
-        is_full_hd = self.resolution == '1920x1080'
-        if is_full_hd:
+        if self.is_full_hd:
             self.display.blit(gradient_surface(Rect(0, 0, 720, 40), (150, 200, 255), (255, 250, 230)), (0, 0))
             self.display.blit(gradient_surface(Rect(0, 0, 1200, 40), (255, 250, 230), (211, 229, 250)), (720, 0))
 
@@ -487,7 +490,7 @@ class AutoInspection:
                     pg.display.iconify()
                 if event.ui_element == self.open_image_button:
                     self.file_dialog = UIFileDialog(
-                        Rect(430, 50, 440, 500) if is_full_hd else Rect(200, 50, 400, 400),
+                        Rect(430, 50, 440, 500) if self.is_full_hd else Rect(200, 50, 400, 400),
                         self.manager, 'Load Image...', {".png", ".jpg"},
                         join(self.model_name_dir(), 'img_full'),
                         allow_picking_directories=True,
@@ -598,8 +601,7 @@ class AutoInspection:
         self.file_name_button.set_text(f'{self.file_name}')
 
     def panel1_setup(self):
-        is_full_hd = self.resolution == '1920x1080'
-        self.panel1_rect = Rect(0, 40, 1347, 1010) if is_full_hd else Rect(0, 30, 600, 430)
+        self.panel1_rect = Rect(0, 40, 1347, 1010) if self.is_full_hd else Rect(0, 30, 600, 430)
         self.panel1_surface = Surface(self.panel1_rect.size)
 
         self.scale_factor = 1
@@ -652,15 +654,14 @@ class AutoInspection:
                                  ((self.panel1_rect.size - self.img_size_vector) / 2 + self.img_offset).tolist())
 
     def panel2_setup(self):
-        is_full_hd = self.resolution == '1920x1080'
-        is_set_amount = self.config.get('is_set_amount')
-        self.panel2_up_rect = Rect(1347, 40, 573, 90) if is_full_hd else Rect(600, 30, 200, 72)
+        is_set_qty = self.is_set_qty
+        self.panel2_up_rect = Rect(1347, 40, 573, 90) if self.is_full_hd else Rect(600, 30, 200, 72)
         self.panel2_up = UIPanel(self.panel2_up_rect, manager=self.manager)
 
-        self.panel2_rect = Rect(1347, 127, 573, 925) if is_full_hd else Rect(600, 99, 200, 363)
+        self.panel2_rect = Rect(1347, 127, 573, 925) if self.is_full_hd else Rect(600, 99, 200, 363)
         self.panel2 = UIPanel(self.panel2_rect, manager=self.manager)
 
-        if is_full_hd:
+        if self.is_full_hd:
             self.capture_button = UIButton(Rect(10, 10, 100, 50), 'Capture', container=self.panel2_up, )
             self.auto_cap_button = UIButton(Rect(10, 0, 100, 20), 'Auto', container=self.panel2_up, anchors={
                 'top_target': self.capture_button
@@ -700,38 +701,38 @@ class AutoInspection:
         self.predict_button.disable()
 
         self.res_textbox = TextBoxSurface(
-            Rect((self.panel2_rect.w - 300) / 2, 12, 300, 150) if is_full_hd \
+            Rect((self.panel2_rect.w - 300) / 2, 12, 300, 150) if self.is_full_hd \
                 else Rect((self.panel2_rect.w - 190) / 2, 5, 190, 80),
             container=self.panel2,
         )
         self.res_textbox.add_text(
             'res', text='-', color=(0, 0, 0),
-            font_name='Arial', font_size=130 if is_full_hd else 50
+            font_name='Arial', font_size=130 if self.is_full_hd else 50
         )
-        rect = Rect((self.panel2_rect.w - 550) / 2, 170, 550, 180) if is_full_hd \
+        rect = Rect((self.panel2_rect.w - 550) / 2, 170, 550, 180) if self.is_full_hd \
             else Rect((self.panel2_rect.w - 190) / 2, 84, 190, 90)
-        if is_set_amount:
-            rect.h += 40 if is_full_hd else 20
+        if is_set_qty:
+            rect.h += 40 if self.is_full_hd else 20
         self.passrate_textbox = TextBoxSurface(rect, container=self.panel2)
-        xy_a = [50, 10] if is_full_hd else [10, 5]
-        xy_b = [300, 10] if is_full_hd else [100, 5]
-        font_size = 40 if is_full_hd else 20
+        xy_a = [50, 10] if self.is_full_hd else [10, 5]
+        xy_b = [300, 10] if self.is_full_hd else [100, 5]
+        font_size = 40 if self.is_full_hd else 20
 
-        if is_set_amount:
+        if is_set_qty:
             self.passrate_textbox.add_text(
-                'Set amount_', 'Set amount',
+                'Set qty_', 'Set qty',
                 tuple(xy_a),
                 (0, 0, 200),
                 font_name='Arial', font_size=font_size, anchor='topleft'
             )
             self.passrate_textbox.add_text(
-                'Set amount', text=': 0',
+                'Set qty', text=': 0',
                 xy=tuple(xy_b),
                 color=(0, 0, 200),
                 font_name='Arial', font_size=font_size, anchor='topleft'
             )
-            xy_a[1] += 50 if is_full_hd else 25
-            xy_b[1] += 50 if is_full_hd else 25
+            xy_a[1] += 50 if self.is_full_hd else 25
+            xy_b[1] += 50 if self.is_full_hd else 25
 
         self.passrate_textbox.add_text(
             'Pass_', text='Pass',
@@ -743,8 +744,8 @@ class AutoInspection:
             xy=tuple(xy_b), color=(0, 200, 0),
             font_name='Arial', font_size=font_size, anchor='topleft'
         )
-        xy_a[1] += 50 if is_full_hd else 25
-        xy_b[1] += 50 if is_full_hd else 25
+        xy_a[1] += 50 if self.is_full_hd else 25
+        xy_b[1] += 50 if self.is_full_hd else 25
 
         self.passrate_textbox.add_text(
             'Fail_', text='Fail',
@@ -756,8 +757,8 @@ class AutoInspection:
             xy=tuple(xy_b), color=(255, 0, 0),
             font_name='Arial', font_size=font_size, anchor='topleft'
         )
-        xy_a[1] += 50 if is_full_hd else 25
-        xy_b[1] += 50 if is_full_hd else 25
+        xy_a[1] += 50 if self.is_full_hd else 25
+        xy_b[1] += 50 if self.is_full_hd else 25
 
         self.passrate_textbox.add_text(
             'Pass rate_', text='Pass rate',
@@ -769,15 +770,20 @@ class AutoInspection:
             xy=tuple(xy_b), color=(0, 0, 0),
             font_name='Arial', font_size=font_size, anchor='topleft'
         )
-
+        self.data['status'] = {
+            'set_qty': 0,
+            'pass_n': 0,
+            'fail_n': 0,
+            'pass_rate': 0
+        }
         self.numpad_window = None
 
         # Create a UITextBox inside the panel
-        rect = Rect(((self.panel2_rect.w - 550) / 2, 357), (550, 555)) if is_full_hd \
+        rect = Rect(((self.panel2_rect.w - 550) / 2, 357), (550, 555)) if self.is_full_hd \
             else Rect((self.panel2_rect.w - 190) / 2, 173, 190, 186)
-        if is_set_amount:
-            rect.y += 40 if is_full_hd else 20
-            rect.h -= 40 if is_full_hd else 20
+        if is_set_qty:
+            rect.y += 40 if self.is_full_hd else 20
+            rect.h -= 40 if self.is_full_hd else 20
         self.res_NG_text_box = UITextBox(html_text="", relative_rect=rect, container=self.panel2)
 
     def panel2_update(self, events):
@@ -830,7 +836,6 @@ class AutoInspection:
 
             self.reset_frame()
 
-        is_full_hd = self.resolution == '1920x1080'
         data_events = self.data.get('events') or []
         for event in data_events:
             self.data['events'].remove(event)
@@ -863,7 +868,7 @@ class AutoInspection:
                     self.auto_cap_button.set_text('Auto')
 
                     self.file_dialog = UIFileDialog(
-                        Rect(1360, 130, 440, 500) if is_full_hd else Rect(200, 50, 400, 400),
+                        Rect(1360, 130, 440, 500) if self.is_full_hd else Rect(200, 50, 400, 400),
                         self.manager, 'Load Image...', {".png", ".jpg"},
                         self.data['config']['projects_directory']
                         if self.data['model_name'] == '-' else self.model_name_dir(),
@@ -913,7 +918,7 @@ class AutoInspection:
         self.panel2_setup()
 
     def handle_events(self):
-        is_set_amount = self.config.get('is_set_amount')
+        is_set_qty = self.is_set_qty
         events = pg.event.get()
         self.panel0_update(events)
         self.panel1_update(events)
@@ -922,7 +927,7 @@ class AutoInspection:
             self.manager.process_events(event)
             # if event.type != 1024:
             #     print(event)
-            if is_set_amount and event.type == pg.MOUSEBUTTONUP and event.button == 1:
+            if is_set_qty and event.type == pg.MOUSEBUTTONUP and event.button in [1, 3]:
                 x = self.panel2.rect.x + self.passrate_textbox.rect.x
                 y = self.panel2.rect.y + self.passrate_textbox.rect.y
                 w = self.passrate_textbox.rect.w
@@ -933,13 +938,14 @@ class AutoInspection:
                     self.numpad_window = NumpadWindow(
                         (
                             self.panel2_rect.x - 340,
-                            self.panel2_rect.y if self.resolution == '1920x1080' else self.panel2_up_rect.y
+                            self.panel2_rect.y if self.is_full_hd else self.panel2_up_rect.y
                         ),
                         self.manager
                     )
-            if is_set_amount and event.type == 32867:
+            if is_set_qty and event.type == 32867:
                 if event.ui_object_id == 'window.#numpad_button_OK':
-                    self.passrate_textbox.update_text('Set amount', text=f': {self.numpad_window.val}')
+                    self.passrate_textbox.update_text('Set qty', text=f': {self.numpad_window.val}')
+                    self.data['status']['set_qty'] = self.numpad_window.val
 
             if event.type == pygame_gui.UI_BUTTON_ON_HOVERED:
                 self.manager.set_active_cursor(pg.SYSTEM_CURSOR_HAND)
