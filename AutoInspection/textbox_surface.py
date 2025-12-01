@@ -133,9 +133,11 @@ class TextBoxSurface:
 
 
 class NumpadWindow(UIWindow):
+    NUMPAD_ENTER_USER_TYPE = "numpad_enter"
+
     def __init__(
             self,
-            xy=(200, 50),
+            xy: tuple[int, int] = (200, 50),
             manager: IUIManagerInterface | None = None,
             window_display_title: str = "Numpad",
 
@@ -146,8 +148,8 @@ class NumpadWindow(UIWindow):
             window_display_title=window_display_title
         )
 
-        self.current_input = ""
-        self.val = 0
+        self.current_input: str = ""
+        self.value: int = 0
 
         self.display_label = UILabel(
             relative_rect=pygame.Rect((20, 20), (300, 60)),
@@ -167,7 +169,7 @@ class NumpadWindow(UIWindow):
             ['<', '0', 'OK']
         ]
 
-        self.buttons = {}
+        self.buttons: dict[UIButton, str] = {}
 
         for row_index, row_keys in enumerate(self.button_layout):
             for col_index, key in enumerate(row_keys):
@@ -182,7 +184,7 @@ class NumpadWindow(UIWindow):
                 )
                 self.buttons[btn] = key
 
-    def process_event(self, event):
+    def process_event(self, event: pygame.event.Event) -> bool:
         handled = super().process_event(event)
 
         if event.type == pygame_gui.UI_BUTTON_PRESSED:
@@ -191,18 +193,46 @@ class NumpadWindow(UIWindow):
                 self.handle_numpad_input(pressed_value)
                 handled = True
 
+        if event.type == pygame.TEXTINPUT:
+            if event.text in '0123456789':
+                self.handle_numpad_input(event.text)
+                handled = True
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE:
+                self.handle_numpad_input('<')
+                handled = True
+            elif event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                self.handle_numpad_input('OK')
+                handled = True
+
         return handled
 
-    def handle_numpad_input(self, value):
+    def handle_numpad_input(self, value: str) -> None:
         if value == 'OK':
+            self.value = int(self.current_input) if self.current_input else 0
+
+            pygame.event.post(
+                pygame.event.Event(
+                    pygame.USEREVENT,
+                    {
+                        "user_type": self.NUMPAD_ENTER_USER_TYPE,
+                        "value": self.value,
+                        "text": self.current_input
+                    }
+                )
+            )
+
             self.kill()
-        elif value == '<':
+            return
+
+        if value == '<':
             self.current_input = self.current_input[:-1]
-            self.val = int(self.current_input) if self.current_input else 0
         else:
-            if len(self.current_input) < 12:
+            if len(self.current_input) < 12 and value.isdigit():
                 self.current_input += value
-            self.val = int(self.current_input) if self.current_input else 0
+
+        self.value = int(self.current_input) if self.current_input else 0
         self.display_label.set_text(self.current_input)
 
 
@@ -253,18 +283,21 @@ def ex1():
     pygame.quit()
 
 
-def ex_numpad_window():
-    pygame.init()
+def ex_numpad_window() -> None:
+    from theme import theme
 
-    window_surface = pygame.display.set_mode((800, 600))
+    pygame.init()
+    pygame.key.start_text_input()
+
+    window_size = (800, 600)
+    window_surface = pygame.display.set_mode(window_size)
     pygame.display.set_caption("Pygame GUI Numpad Example")
 
-    background = pygame.Surface((800, 600))
+    background = pygame.Surface(window_size)
     background.fill(pygame.Color('#707070'))
 
-    manager = pygame_gui.UIManager((800, 600))
-
-    numpad_window = NumpadWindow(manager=manager)
+    manager = pygame_gui.UIManager(window_size, theme_path=theme)
+    numpad_window = NumpadWindow(manager=manager, window_display_title='Password')
 
     clock = pygame.time.Clock()
     is_running = True
@@ -276,10 +309,16 @@ def ex_numpad_window():
             if event.type == pygame.QUIT:
                 is_running = False
 
-            if (event.type == pygame.KEYDOWN and
-                    event.key == pygame.K_F1 and
-                    not numpad_window.alive()):
-                numpad_window = NumpadWindow(manager=manager)
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F1:
+                if not numpad_window.alive():
+                    numpad_window = NumpadWindow(manager=manager, window_display_title='Password')
+
+            if event.type == pygame.USEREVENT:
+                if getattr(event, "user_type", None) == NumpadWindow.NUMPAD_ENTER_USER_TYPE:
+                    print(
+                        f'text = {event.text!r}, '
+                        f'value = {event.value}'
+                    )
 
             manager.process_events(event)
 
@@ -290,7 +329,10 @@ def ex_numpad_window():
 
         pygame.display.update()
 
+    pygame.key.stop_text_input()
+    pygame.quit()
+
 
 if __name__ == '__main__':
-    ex1()
-    # ex_numpad_window()
+    # ex1()
+    ex_numpad_window()

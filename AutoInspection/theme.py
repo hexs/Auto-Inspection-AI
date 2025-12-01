@@ -19,6 +19,15 @@ theme.update({
             "name": "Arial",
             "size": "18"
         },
+    },
+    "#numpad_label": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+        "misc": {
+            "text_horiz_alignment": "center"
+        }
     }
 })
 
@@ -121,7 +130,80 @@ theme.update({
             "border_width": "0",
             "shadow_width": "1"
         }
+    },
+    "#numpad_button_1": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+    },
+    "#numpad_button_2": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+    },
+    "#numpad_button_3": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+    },
+    "#numpad_button_4": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+    },
+    "#numpad_button_5": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+    },
+    "#numpad_button_6": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+    },
+    "#numpad_button_7": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+    },
+    "#numpad_button_8": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+    },
+    "#numpad_button_9": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+    },
+    "#numpad_button_0": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+    },
+    "#numpad_button_OK": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+    },
+    "#numpad_button_<": {
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
     }
+
 })
 
 # panel

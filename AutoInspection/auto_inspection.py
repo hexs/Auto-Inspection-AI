@@ -396,17 +396,17 @@ class AutoInspection:
         )
         self.create_model_data_dropdown()
         self.open_image_button = UIButton(
-            Rect(10, 5, 70, 30) if self.is_full_hd else Rect(10, 0, 60, 30),
+            Rect(10, 5, 70, 30) if self.is_full_hd else Rect(10, 0, 70, 30),
             'Open...', self.manager,
             anchors={'left_target': self.model_data_dropdown}
         )
         self.save_image_button = UIButton(
-            Rect(10, 5, 70, 30) if self.is_full_hd else Rect(10, 0, 60, 30),
+            Rect(5, 5, 70, 30) if self.is_full_hd else Rect(5, 0, 70, 30),
             'Save...', self.manager,
             anchors={'left_target': self.open_image_button}
         )
         self.summary_button = UIButton(
-            Rect(10, 5, 70, 30) if self.is_full_hd else Rect(10, 0, 60, 30),
+            Rect(5, 5, 70, 30) if self.is_full_hd else Rect(5, 0, 70, 30),
             'Summary', self.manager,
             anchors={'left_target': self.save_image_button}
         )
@@ -428,7 +428,7 @@ class AutoInspection:
         )
         if self.data['config'].get('fake_version'):
             UILabel(
-                Rect(-100, 0, 100, 40),
+                Rect(-100, 0, 100, 40) if self.is_full_hd else Rect(-100, -5, 100, 40),
                 f'{self.data["config"].get("fake_version")}',
                 self.manager,
                 object_id=ObjectID(class_id='@model_label', object_id='#model_label'),
@@ -942,10 +942,10 @@ class AutoInspection:
                         ),
                         self.manager
                     )
-            if is_set_qty and event.type == 32867:
-                if event.ui_object_id == 'window.#numpad_button_OK':
-                    self.passrate_textbox.update_text('Set qty', text=f': {self.numpad_window.val}')
-                    self.data['status']['set_qty'] = self.numpad_window.val
+            if event.type == pg.USEREVENT:
+                if getattr(event, "user_type", None) == NumpadWindow.NUMPAD_ENTER_USER_TYPE:
+                    self.passrate_textbox.update_text('Set qty', text=f': {event.value}')
+                    self.data['status']['set_qty'] = event.value
 
             if event.type == pygame_gui.UI_BUTTON_ON_HOVERED:
                 self.manager.set_active_cursor(pg.SYSTEM_CURSOR_HAND)
