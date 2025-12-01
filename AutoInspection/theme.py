@@ -36,7 +36,7 @@ theme.update({
             },
         "font": {
             "name": "Arial",
-            "size": "30"
+            "size": "25"
         },
         "misc": {
             "text_horiz_alignment": "center"

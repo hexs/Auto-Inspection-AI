@@ -857,6 +857,19 @@ class AutoInspection:
                 self.get_surface_form_config_data()
                 self.reset_frame()
                 self.set_name_for_debug()
+            if event == 'input_password':
+                self.data['status']['enter_password_to_reset'] = 'wait'
+                NumpadWindow(
+                    (
+                        self.panel2_rect.x - 340,
+                        self.panel2_rect.y if self.is_full_hd else self.panel2_up_rect.y
+                    ),
+                    self.manager,
+                    object_id=ObjectID(
+                        class_id='@enter_password_to_reset', object_id='#enter_password_to_reset'
+                    ),
+                    placeholder='Enter password to reset'
+                )
 
         for event in events:
             if event.type == UI_BUTTON_PRESSED:
@@ -950,6 +963,22 @@ class AutoInspection:
                     if event.object_id == '#number_of_part_to_be_inspected':
                         self.passrate_textbox.update_text('Set qty', text=f': {event.value}')
                         self.data['status']['set_qty'] = event.value
+
+                    if event.object_id == '#enter_password_to_reset':
+                        if self.config['password_to_reset'] == event.text:
+                            self.data['status']['enter_password_to_reset'] = True
+                        else:
+                            NumpadWindow(
+                                (
+                                    self.panel2_rect.x - 340,
+                                    self.panel2_rect.y if self.is_full_hd else self.panel2_up_rect.y
+                                ),
+                                self.manager,
+                                object_id=ObjectID(
+                                    class_id='@enter_password_to_reset', object_id='#enter_password_to_reset'
+                                ),
+                                placeholder='Wrong password, try again'
+                            )
 
             if event.type == pygame_gui.UI_BUTTON_ON_HOVERED:
                 self.manager.set_active_cursor(pg.SYSTEM_CURSOR_HAND)
