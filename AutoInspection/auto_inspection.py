@@ -947,8 +947,9 @@ class AutoInspection:
                     )
             if event.type == pg.USEREVENT:
                 if getattr(event, "user_type", None) == NumpadWindow.NUMPAD_ENTER_USER_TYPE:
-                    self.passrate_textbox.update_text('Set qty', text=f': {event.value}')
-                    self.data['status']['set_qty'] = event.value
+                    if event.object_id == '#number_of_part_to_be_inspected':
+                        self.passrate_textbox.update_text('Set qty', text=f': {event.value}')
+                        self.data['status']['set_qty'] = event.value
 
             if event.type == pygame_gui.UI_BUTTON_ON_HOVERED:
                 self.manager.set_active_cursor(pg.SYSTEM_CURSOR_HAND)
