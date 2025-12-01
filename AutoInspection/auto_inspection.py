@@ -940,7 +940,10 @@ class AutoInspection:
                             self.panel2_rect.x - 340,
                             self.panel2_rect.y if self.is_full_hd else self.panel2_up_rect.y
                         ),
-                        self.manager
+                        self.manager,
+                        object_id=ObjectID(
+                            class_id='@number_of_part_to_be_inspected', object_id='#number_of_part_to_be_inspected'
+                        )
                     )
             if event.type == pg.USEREVENT:
                 if getattr(event, "user_type", None) == NumpadWindow.NUMPAD_ENTER_USER_TYPE:
