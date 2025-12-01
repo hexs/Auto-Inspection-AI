@@ -28,6 +28,19 @@ theme.update({
         "misc": {
             "text_horiz_alignment": "center"
         }
+    },
+    "#placeholder_label": {
+        "colours":
+            {
+                "normal_text": "#999",
+            },
+        "font": {
+            "name": "Arial",
+            "size": "30"
+        },
+        "misc": {
+            "text_horiz_alignment": "center"
+        }
     }
 })
 
