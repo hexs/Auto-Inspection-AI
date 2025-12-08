@@ -20,6 +20,15 @@ theme.update({
             "size": "18"
         },
     },
+    "#fake_version": {
+        "font": {
+            "name": "Arial",
+            "size": "18"
+        },
+        "misc": {
+            "text_horiz_alignment": "right"
+        }
+    },
     "#numpad_label": {
         "font": {
             "name": "Arial",

@@ -428,10 +428,10 @@ class AutoInspection:
         )
         if self.data['config'].get('fake_version'):
             UILabel(
-                Rect(-100, 0, 100, 40) if self.is_full_hd else Rect(-100, -5, 100, 40),
+                Rect(-200, 0, 200, 40) if self.is_full_hd else Rect(-200, -5, 200, 40),
                 f'{self.data["config"].get("fake_version")}',
                 self.manager,
-                object_id=ObjectID(class_id='@model_label', object_id='#model_label'),
+                object_id=ObjectID(class_id='@fake_version', object_id='#fake_version'),
                 anchors=anchors | {'right_target': self.minimize_button}
             )
 
