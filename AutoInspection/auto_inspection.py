@@ -115,10 +115,9 @@ class AutoInspection:
         self.update_scaled_img_surface()
 
     def get_surface_form_config_data(self):
-        if self.data.get('img') is not None:
-            self.np_img = self.data.get('img_form_api')
-            self.get_surface_form_np(self.np_img)
-            self.auto_cap_button.set_text('Auto')
+        self.np_img = self.data.get('img_form_api')
+        self.get_surface_form_np(self.np_img)
+        self.auto_cap_button.set_text('Auto')
 
     def show_rects_to_surface(self, frame_dict, type='frame'):
         if self.is_show_rects:
@@ -693,7 +692,7 @@ class AutoInspection:
             self.predict_button = UIButton(Rect(0, 6, 79, 30), 'Predict', container=self.panel2_up, anchors={
                 'left_target': self.load_button,
             })
-            self.capture_predict_button = UIButton(Rect(0, 35, 79, 30), 'Cap&Pre_', container=self.panel2_up, anchors={
+            self.capture_predict_button = UIButton(Rect(0, 35, 79, 30), 'Cap&Pred', container=self.panel2_up, anchors={
                 'left_target': self.load_button,
             })
         self.file_dialog = None
@@ -1036,7 +1035,7 @@ class AutoInspection:
                     result = {}
                     for name, frame in self.frame_dict.items() if self.frame_dict else ():
                         # result[name] = frame['class_names_percent']
-                        result[name] = frame['class_names_prediction']
+                        result[name] = frame.get('class_names_prediction', '-')
                     # print(result)
 
                     with open(join(result_path, f'result.txt'), 'a') as f:
